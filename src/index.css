@@ -56,6 +56,9 @@
     --surface-elevated: 0 0% 100%;
     --surface-sunken: 240 4.8% 95.9%;
     --text-tertiary: 240 3.8% 60%;
+    
+    /* Solid card backgrounds for wallpaper mode */
+    --card-solid: 0 0% 100%;
   }
 
   .dark {
@@ -107,6 +110,9 @@
     --surface-elevated: 240 10% 8%;
     --surface-sunken: 240 10% 5%;
     --text-tertiary: 240 5% 50%;
+    
+    /* Solid card backgrounds for wallpaper mode */
+    --card-solid: 0 0% 0%;
   }
 }
 
@@ -179,5 +185,11 @@
 
   .gpa-pending {
     @apply text-muted-foreground italic;
+  }
+
+  /* Solid backgrounds for wallpaper mode */
+  .solid-card {
+    background-color: hsl(var(--card-solid)) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   }
 }

@@ -15,6 +15,7 @@ interface SemesterBlockProps {
   semester: Semester;
   semesterGPA: number | null;
   hasAllGrades: boolean;
+  hasWallpaper?: boolean;
   getSubjectPredictedGrade: (subject: Subject) => number | null;
   hasAtLeastOneGrade: (subject: Subject) => boolean;
   hasEmptyMarks: (subject: Subject) => boolean;
@@ -34,6 +35,7 @@ export function SemesterBlock({
   semester,
   semesterGPA,
   hasAllGrades,
+  hasWallpaper = false,
   getSubjectPredictedGrade,
   hasAtLeastOneGrade,
   hasEmptyMarks,
@@ -163,6 +165,7 @@ export function SemesterBlock({
               hasGrade={hasGrade}
               letterGrade={letterGrade}
               hasEmptyMarks={emptyMarks}
+              hasWallpaper={hasWallpaper}
               onAddPDF={onAddPDF ? (file) => onAddPDF(subject.id, file) : undefined}
               onClick={() => onSubjectClick(subject)}
               onUpdateSubject={(updates) => onUpdateSubject(subject.id, updates)}

@@ -6,14 +6,17 @@ import { Header } from '@/components/Header';
 import { SemesterBlock } from '@/components/SemesterBlock';
 import { SubjectModal } from '@/components/SubjectModal';
 import { DeleteSemesterDialog } from '@/components/DeleteSemesterDialog';
+import { WallpaperSettings } from '@/components/WallpaperSettings';
 import { useSupabaseCurriculum } from '@/hooks/useSupabaseCurriculum';
 import { useTheme } from '@/hooks/useTheme';
+import { useWallpaper } from '@/hooks/useWallpaper';
 import { useAuth } from '@/contexts/AuthContext';
 import { Subject } from '@/types/curriculum';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
+  const { wallpaper, setWallpaper } = useWallpaper();
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -99,13 +102,23 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header cgpa={cgpa} theme={theme} onToggleTheme={toggleTheme}>
-        <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </Button>
-      </Header>
+    <div className="min-h-screen bg-background relative">
+      {/* Wallpaper layer */}
+      {wallpaper && (
+        <div
+          className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${wallpaper})` }}
+        />
+      )}
+      
+      <div className="relative z-10">
+        <Header cgpa={cgpa} theme={theme} onToggleTheme={toggleTheme} hasWallpaper={!!wallpaper}>
+          <WallpaperSettings wallpaper={wallpaper} onSetWallpaper={setWallpaper} />
+          <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </Header>
 
       <main className="container mx-auto px-4 py-8">
         <motion.div
@@ -139,6 +152,7 @@ const Index = () => {
               semester={semester}
               semesterGPA={getSemesterGPA(semester)}
               hasAllGrades={semesterHasAllGrades(semester)}
+              hasWallpaper={!!wallpaper}
               getSubjectPredictedGrade={getSubjectPredictedGrade}
               hasAtLeastOneGrade={hasAtLeastOneGrade}
               hasEmptyMarks={hasEmptyMarks}
@@ -240,6 +254,7 @@ const Index = () => {
         onClose={() => setDeleteDialog({ isOpen: false, semesterId: '', semesterName: '' })}
         onConfirm={confirmDeleteSemester}
       />
+      </div>
     </div>
   );
 };

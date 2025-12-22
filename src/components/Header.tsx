@@ -2,19 +2,21 @@ import { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Moon, Sun, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   cgpa: number | null;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  hasWallpaper?: boolean;
   children?: ReactNode;
 }
 
-export function Header({ cgpa, theme, onToggleTheme, children }: HeaderProps) {
+export function Header({ cgpa, theme, onToggleTheme, hasWallpaper = false, children }: HeaderProps) {
   const isRevealed = cgpa !== null;
 
   return (
-    <header className="sticky top-0 z-50 glass border-b">
+    <header className={cn("sticky top-0 z-50 border-b", hasWallpaper ? "solid-card" : "glass")}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
