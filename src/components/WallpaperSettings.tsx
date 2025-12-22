@@ -19,11 +19,21 @@ export function WallpaperSettings({ wallpaper, onSetWallpaper }: WallpaperSettin
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSetUrl = () => {
-    if (urlInput.trim()) {
-      onSetWallpaper(urlInput.trim());
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    try {
+      const url = new URL(trimmed);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        toast.error('Only http:// and https:// URLs are allowed');
+        return;
+      }
+      onSetWallpaper(trimmed);
       setUrlInput('');
       setIsOpen(false);
       toast.success('Wallpaper set successfully');
+    } catch {
+      toast.error('Invalid URL format');
     }
   };
 
