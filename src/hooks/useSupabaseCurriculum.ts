@@ -1,13 +1,19 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Semester, Subject, Assignment, Exam, StudyMaterial, GRADE_SCALE } from '@/types/curriculum';
 import { toast } from 'sonner';
 
+// Generate temporary IDs for optimistic updates
+const generateTempId = () => `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
 export function useSupabaseCurriculum() {
   const { user } = useAuth();
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Track pending operations for optimistic updates
+  const pendingOps = useRef<Set<string>>(new Set());
 
   // Fetch all data from database
   const fetchData = useCallback(async () => {
@@ -247,23 +253,42 @@ export function useSupabaseCurriculum() {
     return totalPoints / totalCredits;
   }, [semesters, semesterHasAllGrades, getSubjectPredictedGrade, getGradePoint]);
 
-  // Semester CRUD
+  // Semester CRUD with Optimistic Updates
   const addSemester = useCallback(async () => {
     if (!user) return;
 
+    const tempId = generateTempId();
     const position = semesters.length;
-    const { data, error } = await supabase
-      .from('semesters')
-      .insert({ user_id: user.id, name: 'New Semester', emoji: '📚', position })
-      .select()
-      .single();
+    const newSemester: Semester = {
+      id: tempId,
+      name: 'New Semester',
+      emoji: '📚',
+      subjects: [],
+    };
 
-    if (error) {
+    // Optimistic update - add immediately
+    setSemesters((prev) => [...prev, newSemester]);
+
+    try {
+      const { data, error } = await supabase
+        .from('semesters')
+        .insert({ user_id: user.id, name: 'New Semester', emoji: '📚', position })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Replace temp ID with real ID
+      setSemesters((prev) =>
+        prev.map((s) =>
+          s.id === tempId ? { ...s, id: data.id } : s
+        )
+      );
+    } catch (error) {
+      // Rollback on error
+      setSemesters((prev) => prev.filter((s) => s.id !== tempId));
       toast.error('Failed to create semester');
-      return;
     }
-
-    setSemesters((prev) => [...prev, { id: data.id, name: data.name, emoji: data.emoji || '📚', subjects: [] }]);
   }, [user, semesters.length]);
 
   const updateSemester = useCallback(async (semesterId: string, updates: Partial<Semester>) => {
@@ -293,37 +318,101 @@ export function useSupabaseCurriculum() {
     setSemesters((prev) => prev.filter((s) => s.id !== semesterId));
   }, []);
 
-  // Subject CRUD
+  // Subject CRUD with Optimistic Updates
   const addSubject = useCallback(async (semesterId: string) => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('subjects')
-      .insert({
-        semester_id: semesterId,
-        user_id: user.id,
-        name: 'New Subject',
-        code: 'CODE',
-        credits: 3,
-        midsem_weight: 20,
-        endsem_weight: 40,
-      })
-      .select()
-      .single();
+    const tempId = generateTempId();
+    const newSubject: Subject = {
+      id: tempId,
+      name: 'New Subject',
+      code: 'CODE',
+      credits: 3,
+      midsemWeight: 20,
+      endsemWeight: 40,
+      assignments: [],
+      exams: [
+        { id: `${tempId}_midsem`, name: 'Midsem', weight: 20, marksObtained: null, maxMarks: 100 },
+        { id: `${tempId}_endsem`, name: 'Endsem', weight: 40, marksObtained: null, maxMarks: 100 },
+      ],
+      materials: [],
+      pdfs: [],
+    };
 
-    if (error) {
+    // Optimistic update - add immediately
+    setSemesters((prev) =>
+      prev.map((sem) =>
+        sem.id === semesterId
+          ? { ...sem, subjects: [...sem.subjects, newSubject] }
+          : sem
+      )
+    );
+
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .insert({
+          semester_id: semesterId,
+          user_id: user.id,
+          name: 'New Subject',
+          code: 'CODE',
+          credits: 3,
+          midsem_weight: 20,
+          endsem_weight: 40,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Create default exams
+      const { data: examsData, error: examsError } = await supabase
+        .from('exams')
+        .insert([
+          { subject_id: data.id, user_id: user.id, type: 'midsem', max_marks: 100 },
+          { subject_id: data.id, user_id: user.id, type: 'endsem', max_marks: 100 },
+        ])
+        .select();
+
+      if (examsError) throw examsError;
+
+      // Replace temp IDs with real IDs
+      setSemesters((prev) =>
+        prev.map((sem) =>
+          sem.id === semesterId
+            ? {
+                ...sem,
+                subjects: sem.subjects.map((s) =>
+                  s.id === tempId
+                    ? {
+                        ...s,
+                        id: data.id,
+                        exams: examsData.map((e) => ({
+                          id: e.id,
+                          name: e.type === 'midsem' ? 'Midsem' : 'Endsem',
+                          weight: e.type === 'midsem' ? 20 : 40,
+                          marksObtained: e.marks_obtained,
+                          maxMarks: e.max_marks,
+                        })),
+                      }
+                    : s
+                ),
+              }
+            : sem
+        )
+      );
+    } catch (error) {
+      // Rollback on error
+      setSemesters((prev) =>
+        prev.map((sem) =>
+          sem.id === semesterId
+            ? { ...sem, subjects: sem.subjects.filter((s) => s.id !== tempId) }
+            : sem
+        )
+      );
       toast.error('Failed to create subject');
-      return;
     }
-
-    // Create default exams
-    await supabase.from('exams').insert([
-      { subject_id: data.id, user_id: user.id, type: 'midsem', max_marks: 100 },
-      { subject_id: data.id, user_id: user.id, type: 'endsem', max_marks: 100 },
-    ]);
-
-    await fetchData();
-  }, [user, fetchData]);
+  }, [user]);
 
   const updateSubject = useCallback(async (semesterId: string, subjectId: string, updates: Partial<Subject>) => {
     const dbUpdates: any = {};
@@ -370,36 +459,21 @@ export function useSupabaseCurriculum() {
     );
   }, []);
 
-  // Assignment CRUD
+  // Assignment CRUD with Optimistic Updates
   const addAssignment = useCallback(async (semesterId: string, subjectId: string, assignment: Omit<Assignment, 'id'>) => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from('assignments')
-      .insert({
-        subject_id: subjectId,
-        user_id: user.id,
-        name: assignment.name,
-        marks_obtained: assignment.marksObtained,
-        max_marks: assignment.maxMarks,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Failed to create assignment');
-      return;
-    }
-
+    const tempId = generateTempId();
     const newAssignment: Assignment = {
-      id: data.id,
-      name: data.name,
-      weight: 0,
-      marksObtained: data.marks_obtained,
-      maxMarks: data.max_marks,
-      confidence: 50,
+      id: tempId,
+      name: assignment.name,
+      weight: assignment.weight || 0,
+      marksObtained: assignment.marksObtained,
+      maxMarks: assignment.maxMarks,
+      confidence: assignment.confidence || 50,
     };
 
+    // Optimistic update - add immediately
     setSemesters((prev) =>
       prev.map((sem) =>
         sem.id === semesterId
@@ -412,6 +486,60 @@ export function useSupabaseCurriculum() {
           : sem
       )
     );
+
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .insert({
+          subject_id: subjectId,
+          user_id: user.id,
+          name: assignment.name,
+          marks_obtained: assignment.marksObtained,
+          max_marks: assignment.maxMarks,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Replace temp ID with real ID
+      setSemesters((prev) =>
+        prev.map((sem) =>
+          sem.id === semesterId
+            ? {
+                ...sem,
+                subjects: sem.subjects.map((s) =>
+                  s.id === subjectId
+                    ? {
+                        ...s,
+                        assignments: s.assignments.map((a) =>
+                          a.id === tempId ? { ...a, id: data.id } : a
+                        ),
+                      }
+                    : s
+                ),
+              }
+            : sem
+        )
+      );
+    } catch (error) {
+      // Rollback on error
+      setSemesters((prev) =>
+        prev.map((sem) =>
+          sem.id === semesterId
+            ? {
+                ...sem,
+                subjects: sem.subjects.map((s) =>
+                  s.id === subjectId
+                    ? { ...s, assignments: s.assignments.filter((a) => a.id !== tempId) }
+                    : s
+                ),
+              }
+            : sem
+        )
+      );
+      toast.error('Failed to create assignment');
+    }
   }, [user]);
 
   const updateAssignment = useCallback(async (semesterId: string, subjectId: string, assignmentId: string, updates: Partial<Assignment>) => {

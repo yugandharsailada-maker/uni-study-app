@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -19,6 +19,7 @@ import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useFormPersistence } from '@/hooks/useFormPersistence';
 
 interface SubjectModalProps {
   subject: Subject | null;
@@ -35,8 +36,12 @@ interface SubjectModalProps {
   onDeleteMaterial: (materialId: string) => void;
 }
 
+const DEFAULT_ASSIGNMENT = { name: '', weight: 10, maxMarks: 100 };
+const DEFAULT_RESOURCE = { name: '', path: '' };
+
 export function SubjectModal({
   subject,
+  semesterId,
   predictedGrade,
   letterGrade,
   onClose,
@@ -49,8 +54,18 @@ export function SubjectModal({
   onDeleteMaterial,
 }: SubjectModalProps) {
   const [activeTab, setActiveTab] = useState('assignments');
-  const [newAssignment, setNewAssignment] = useState({ name: '', weight: 10, maxMarks: 100 });
-  const [newResource, setNewResource] = useState({ name: '', path: '' });
+  
+  // Use form persistence for draft data
+  const formKey = subject ? `subject_${subject.id}` : 'subject_new';
+  const [newAssignment, setNewAssignment, clearAssignment] = useFormPersistence(
+    `${formKey}_assignment`,
+    DEFAULT_ASSIGNMENT
+  );
+  const [newResource, setNewResource, clearResource] = useFormPersistence(
+    `${formKey}_resource`,
+    DEFAULT_RESOURCE
+  );
+  
   const [expandedMaterialId, setExpandedMaterialId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -65,14 +80,14 @@ export function SubjectModal({
         maxMarks: newAssignment.maxMarks,
         confidence: 50,
       });
-      setNewAssignment({ name: '', weight: 10, maxMarks: 100 });
+      clearAssignment(); // Clear persisted data after successful add
     }
   };
 
   const handleAddResource = () => {
     if (newResource.name.trim()) {
       onAddMaterial({ name: newResource.name, localPath: newResource.path, type: 'pdf' });
-      setNewResource({ name: '', path: '' });
+      clearResource(); // Clear persisted data after successful add
     }
   };
 
