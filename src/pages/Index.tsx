@@ -205,6 +205,9 @@ const Index = () => {
               : 'N/A'
           }
           onClose={() => setSelectedSubject(null)}
+          onUpdateSubject={(updates) =>
+            updateSubject(selectedSubject.semesterId, currentSubject.id, updates)
+          }
           onUpdateAssignment={(assignmentId, updates) =>
             updateAssignment(
               selectedSubject.semesterId,
@@ -214,32 +217,24 @@ const Index = () => {
             )
           }
           onAddAssignment={(assignment) =>
-            addAssignment(
-              selectedSubject.semesterId,
-              currentSubject.id,
-              assignment
-            )
+            addAssignment(selectedSubject.semesterId, currentSubject.id, assignment)
           }
           onDeleteAssignment={(assignmentId) =>
-            deleteAssignment(
-              selectedSubject.semesterId,
-              currentSubject.id,
-              assignmentId
-            )
+            deleteAssignment(selectedSubject.semesterId, currentSubject.id, assignmentId)
           }
           onUpdateExam={(examId, updates) =>
-            updateExam(
-              selectedSubject.semesterId,
-              currentSubject.id,
-              examId,
-              updates
-            )
+            updateExam(selectedSubject.semesterId, currentSubject.id, examId, updates)
           }
           onAddMaterial={(material) =>
             addMaterial(selectedSubject.semesterId, currentSubject.id, material)
           }
           onUpdateMaterial={(materialId, updates) =>
-            updateMaterial(selectedSubject.semesterId, currentSubject.id, materialId, updates)
+            updateMaterial(
+              selectedSubject.semesterId,
+              currentSubject.id,
+              materialId,
+              updates
+            )
           }
           onDeleteMaterial={(materialId) =>
             deleteMaterial(selectedSubject.semesterId, currentSubject.id, materialId)

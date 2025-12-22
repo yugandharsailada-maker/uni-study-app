@@ -339,8 +339,8 @@ export function useSupabaseCurriculum() {
       endsemWeight: 40,
       assignments: [],
       exams: [
-        { id: `${tempId}_midsem`, name: 'Midsem', weight: 20, marksObtained: null, maxMarks: 100 },
-        { id: `${tempId}_endsem`, name: 'Endsem', weight: 40, marksObtained: null, maxMarks: 100 },
+        { id: `${tempId}_midsem`, name: 'Midsem', weight: 20, marksObtained: null, maxMarks: 30 },
+        { id: `${tempId}_endsem`, name: 'Endsem', weight: 40, marksObtained: null, maxMarks: 50 },
       ],
       materials: [],
       pdfs: [],
@@ -376,8 +376,8 @@ export function useSupabaseCurriculum() {
       const { data: examsData, error: examsError } = await supabase
         .from('exams')
         .insert([
-          { subject_id: data.id, user_id: user.id, type: 'midsem', max_marks: 100 },
-          { subject_id: data.id, user_id: user.id, type: 'endsem', max_marks: 100 },
+          { subject_id: data.id, user_id: user.id, type: 'midsem', max_marks: 30 },
+          { subject_id: data.id, user_id: user.id, type: 'endsem', max_marks: 50 },
         ])
         .select();
 
