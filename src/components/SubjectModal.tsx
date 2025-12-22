@@ -219,15 +219,17 @@ export function SubjectModal({
                             Weight (%)
                           </label>
                           <Input
-                            type="number"
-                            min="0"
-                            max="100"
+                            type="text"
+                            inputMode="numeric"
                             value={assignment.weight}
-                            onChange={(e) =>
-                              onUpdateAssignment(assignment.id, {
-                                weight: Number(e.target.value),
-                              })
-                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*$/.test(val)) {
+                                onUpdateAssignment(assignment.id, {
+                                  weight: val === '' ? 0 : Number(val),
+                                });
+                              }
+                            }}
                             className="h-8 text-sm"
                           />
                         </div>
@@ -236,15 +238,18 @@ export function SubjectModal({
                             Marks Obtained
                           </label>
                           <Input
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
                             value={assignment.marksObtained ?? ''}
                             placeholder="---"
-                            onChange={(e) =>
-                              onUpdateAssignment(assignment.id, {
-                                marksObtained: e.target.value ? Number(e.target.value) : null,
-                              })
-                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                onUpdateAssignment(assignment.id, {
+                                  marksObtained: val === '' ? null : Number(val),
+                                });
+                              }
+                            }}
                             className="h-8 text-sm"
                           />
                         </div>
@@ -253,14 +258,17 @@ export function SubjectModal({
                             Max Marks
                           </label>
                           <Input
-                            type="number"
-                            min="1"
+                            type="text"
+                            inputMode="numeric"
                             value={assignment.maxMarks}
-                            onChange={(e) =>
-                              onUpdateAssignment(assignment.id, {
-                                maxMarks: Number(e.target.value) || 100,
-                              })
-                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*$/.test(val)) {
+                                onUpdateAssignment(assignment.id, {
+                                  maxMarks: val === '' ? 100 : Number(val),
+                                });
+                              }
+                            }}
                             className="h-8 text-sm"
                           />
                         </div>
@@ -308,28 +316,36 @@ export function SubjectModal({
                       className="flex-1 h-9"
                     />
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="Weight %"
-                      value={newAssignment.weight}
-                      onChange={(e) =>
-                        setNewAssignment((prev) => ({
-                          ...prev,
-                          weight: Number(e.target.value),
-                        }))
-                      }
+                      value={newAssignment.weight || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setNewAssignment((prev) => ({
+                            ...prev,
+                            weight: val === '' ? 0 : Number(val),
+                          }));
+                        }
+                      }}
                       className="w-20 h-9"
                     />
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="Max"
-                      value={newAssignment.maxMarks}
-                      onChange={(e) =>
-                        setNewAssignment((prev) => ({
-                          ...prev,
-                          maxMarks: Number(e.target.value),
-                        }))
-                      }
-                      className="w-16 h-9"
+                      value={newAssignment.maxMarks || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setNewAssignment((prev) => ({
+                            ...prev,
+                            maxMarks: val === '' ? 100 : Number(val),
+                          }));
+                        }
+                      }}
+                      className="w-20 h-9"
                     />
                     <Button onClick={handleAddAssignment} size="sm" className="h-9">
                       <Plus className="h-4 w-4" />
@@ -359,13 +375,15 @@ export function SubjectModal({
                             Weight (%)
                           </label>
                           <Input
-                            type="number"
-                            min="0"
-                            max="100"
+                            type="text"
+                            inputMode="numeric"
                             value={exam.weight}
-                            onChange={(e) =>
-                              onUpdateExam(exam.id, { weight: Number(e.target.value) })
-                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*$/.test(val)) {
+                                onUpdateExam(exam.id, { weight: val === '' ? 0 : Number(val) });
+                              }
+                            }}
                             className="h-8 text-sm"
                           />
                         </div>
@@ -374,15 +392,18 @@ export function SubjectModal({
                             Marks Obtained
                           </label>
                           <Input
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
                             value={exam.marksObtained ?? ''}
                             placeholder="---"
-                            onChange={(e) =>
-                              onUpdateExam(exam.id, {
-                                marksObtained: e.target.value ? Number(e.target.value) : null,
-                              })
-                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                onUpdateExam(exam.id, {
+                                  marksObtained: val === '' ? null : Number(val),
+                                });
+                              }
+                            }}
                             className="h-8 text-sm"
                           />
                         </div>
@@ -391,14 +412,17 @@ export function SubjectModal({
                             Max Marks
                           </label>
                           <Input
-                            type="number"
-                            min="1"
+                            type="text"
+                            inputMode="numeric"
                             value={exam.maxMarks}
-                            onChange={(e) =>
-                              onUpdateExam(exam.id, {
-                                maxMarks: Number(e.target.value) || 100,
-                              })
-                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '' || /^\d*$/.test(val)) {
+                                onUpdateExam(exam.id, {
+                                  maxMarks: val === '' ? 100 : Number(val),
+                                });
+                              }
+                            }}
                             className="h-8 text-sm"
                           />
                         </div>

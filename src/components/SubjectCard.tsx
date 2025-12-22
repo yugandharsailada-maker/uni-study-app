@@ -23,6 +23,7 @@ interface SubjectCardProps {
   hasGrade: boolean;
   letterGrade: string;
   hasEmptyMarks: boolean;
+  hasWallpaper?: boolean;
   onAddPDF?: (file: File) => void;
   onClick: () => void;
   onUpdateSubject: (updates: Partial<Subject>) => void;
@@ -35,6 +36,7 @@ export function SubjectCard({
   hasGrade,
   letterGrade,
   hasEmptyMarks,
+  hasWallpaper = false,
   onAddPDF,
   onClick,
   onUpdateSubject,
@@ -82,8 +84,9 @@ export function SubjectCard({
         whileHover={{ y: -2 }}
         transition={{ duration: 0.2 }}
         className={cn(
-          'group relative rounded-xl border bg-card p-4 cursor-pointer transition-all duration-200',
+          'group relative rounded-xl border p-4 cursor-pointer transition-all duration-200',
           'hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5',
+          hasWallpaper ? 'solid-card' : 'bg-card',
           isDragging && 'drop-zone-active border-dashed border-2'
         )}
         onDragOver={handleDragOver}

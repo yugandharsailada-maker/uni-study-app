@@ -188,8 +188,15 @@ export function useSupabaseCurriculum() {
   }, []);
 
   const hasEmptyMarks = useCallback((subject: Subject): boolean => {
-    const hasEmptyAssignment = subject.assignments.some((a) => a.marksObtained === null);
-    const hasEmptyExam = (subject.exams || []).some((e) => e.marksObtained === null);
+    // Only show notification if there are assignments AND at least one is incomplete
+    const assignments = subject.assignments || [];
+    const exams = subject.exams || [];
+    
+    // If no assignments and exams, return false (no dot)
+    if (assignments.length === 0 && exams.length === 0) return false;
+    
+    const hasEmptyAssignment = assignments.some((a) => a.marksObtained === null);
+    const hasEmptyExam = exams.some((e) => e.marksObtained === null);
     return hasEmptyAssignment || hasEmptyExam;
   }, []);
 
