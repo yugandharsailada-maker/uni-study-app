@@ -156,13 +156,14 @@ export function SubjectModal({
       <SheetContent
         side="right"
         className={cn(
-          "p-0 bg-background w-full sm:w-[560px] md:w-[640px] max-w-none",
+          "p-0 w-full sm:w-[45vw] max-w-none",
           "border-l",
+          "bg-white dark:bg-black",
         )}
         aria-label={drawerTitle}
       >
         <div className="flex h-full flex-col">
-          <SheetHeader className="p-5 border-b bg-background">
+          <SheetHeader className="p-5 border-b bg-white dark:bg-black">
             <div className="flex items-start justify-between gap-4 pr-10">
               <div className="min-w-0">
                 <SheetDescription className="text-xs font-medium uppercase tracking-wider">
@@ -198,7 +199,7 @@ export function SubjectModal({
 
           <div className="flex-1 overflow-y-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="px-5 pt-4 border-b bg-background">
+              <div className="px-5 pt-4 border-b bg-white dark:bg-black">
                 <TabsList className="grid w-full grid-cols-3 h-10">
                   <TabsTrigger value="assignments" className="gap-2 text-sm">
                     <ClipboardList className="h-4 w-4" />
