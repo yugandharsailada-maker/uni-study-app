@@ -38,16 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}/`;
+    // We remove the hardcoded "/" to match the standard origin
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl,
+        redirectTo: window.location.origin,
       },
     });
     if (error) throw error;
-  };
-
+};
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
