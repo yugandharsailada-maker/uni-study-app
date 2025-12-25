@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Sun, GraduationCap } from 'lucide-react';
+import { Moon, Sun, GraduationCap, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -9,10 +9,10 @@ interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   hasWallpaper?: boolean;
-  children?: ReactNode;
+  onOpenSettings?: () => void;
 }
 
-export function Header({ cgpa, theme, onToggleTheme, hasWallpaper = false, children }: HeaderProps) {
+export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWallpaper = false, onOpenSettings }: HeaderProps) {
   const isRevealed = cgpa !== null;
 
   return (
@@ -89,9 +89,16 @@ export function Header({ cgpa, theme, onToggleTheme, hasWallpaper = false, child
             </AnimatePresence>
           </Button>
 
-          {children}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenSettings}
+            className="relative overflow-hidden"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </header>
   );
-}
+});

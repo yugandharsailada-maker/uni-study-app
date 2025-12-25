@@ -58,15 +58,15 @@ export type GradePoint = {
 };
 
 export const GRADE_SCALE: GradePoint[] = [
-  { grade: 'A+', minScore: 90, maxScore: 100, points: 4.0 },
-  { grade: 'A', minScore: 85, maxScore: 89.99, points: 4.0 },
-  { grade: 'A-', minScore: 80, maxScore: 84.99, points: 3.7 },
-  { grade: 'B+', minScore: 75, maxScore: 79.99, points: 3.3 },
-  { grade: 'B', minScore: 70, maxScore: 74.99, points: 3.0 },
-  { grade: 'B-', minScore: 65, maxScore: 69.99, points: 2.7 },
-  { grade: 'C+', minScore: 60, maxScore: 64.99, points: 2.3 },
-  { grade: 'C', minScore: 55, maxScore: 59.99, points: 2.0 },
-  { grade: 'C-', minScore: 50, maxScore: 54.99, points: 1.7 },
-  { grade: 'D', minScore: 45, maxScore: 49.99, points: 1.0 },
+  { grade: 'A+', minScore: 90, maxScore: 100, points: 10.0 },
+  { grade: 'A', minScore: 85, maxScore: 89.99, points: 9.0 },
+  { grade: 'A-', minScore: 80, maxScore: 84.99, points: 8.5 },
+  { grade: 'B+', minScore: 75, maxScore: 79.99, points: 8.0 },
+  { grade: 'B', minScore: 70, maxScore: 74.99, points: 7.0 },
+  { grade: 'B-', minScore: 65, maxScore: 69.99, points: 6.5 },
+  { grade: 'C+', minScore: 60, maxScore: 64.99, points: 6.0 },
+  { grade: 'C', minScore: 55, maxScore: 59.99, points: 5.0 },
+  { grade: 'C-', minScore: 50, maxScore: 54.99, points: 4.5 },
+  { grade: 'D', minScore: 45, maxScore: 49.99, points: 4.0 },
   { grade: 'F', minScore: 0, maxScore: 44.99, points: 0.0 },
 ];

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Upload, ChevronRight, CheckCircle2, Trash2 } from 'lucide-react';
 import { Subject } from '@/types/curriculum';
@@ -30,7 +30,7 @@ interface SubjectCardProps {
   onDeleteSubject: () => void;
 }
 
-export function SubjectCard({
+export const SubjectCard = memo(function SubjectCard({
   subject,
   predictedGrade,
   hasGrade,
@@ -70,10 +70,19 @@ export function SubjectCard({
     [onAddPDF]
   );
 
-  const gradedCount = subject.assignments.filter((a) => a.marksObtained !== null).length +
-    (subject.exams || []).filter((e) => e.marksObtained !== null).length;
-  const totalCount = subject.assignments.length + (subject.exams || []).length;
-  const materialsCount = (subject.materials?.length || 0) + (subject.pdfs?.length || 0);
+  const gradedCount = useMemo(() => 
+    subject.assignments.filter((a) => a.marksObtained !== null).length +
+    (subject.exams || []).filter((e) => e.marksObtained !== null).length,
+    [subject.assignments, subject.exams]
+  );
+  const totalCount = useMemo(() => 
+    subject.assignments.length + (subject.exams || []).length,
+    [subject.assignments, subject.exams]
+  );
+  const materialsCount = useMemo(() => 
+    (subject.materials?.length || 0) + (subject.pdfs?.length || 0),
+    [subject.materials, subject.pdfs]
+  );
 
   return (
     <>
@@ -237,4 +246,4 @@ export function SubjectCard({
       </AlertDialog>
     </>
   );
-}
+});

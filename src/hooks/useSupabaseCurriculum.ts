@@ -15,7 +15,7 @@ export function useSupabaseCurriculum() {
   // Track pending operations for optimistic updates
   const pendingOps = useRef<Set<string>>(new Set());
 
-  // Fetch all data from database
+  // Fetch all data from database - optimized with parallel queries
   const fetchData = useCallback(async () => {
     if (!user) {
       setSemesters([]);
@@ -24,45 +24,41 @@ export function useSupabaseCurriculum() {
     }
 
     try {
-      // Fetch semesters
-      const { data: semestersData, error: semestersError } = await supabase
-        .from('semesters')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('position');
+      // Fetch all data in parallel for better performance
+      const [
+        { data: semestersData, error: semestersError },
+        { data: subjectsData, error: subjectsError },
+        { data: assignmentsData, error: assignmentsError },
+        { data: examsData, error: examsError },
+        { data: materialsData, error: materialsError },
+      ] = await Promise.all([
+        supabase
+          .from('semesters')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('position'),
+        supabase
+          .from('subjects')
+          .select('*')
+          .eq('user_id', user.id),
+        supabase
+          .from('assignments')
+          .select('*')
+          .eq('user_id', user.id),
+        supabase
+          .from('exams')
+          .select('*')
+          .eq('user_id', user.id),
+        supabase
+          .from('study_materials')
+          .select('*')
+          .eq('user_id', user.id),
+      ]);
 
       if (semestersError) throw semestersError;
-
-      // Fetch subjects
-      const { data: subjectsData, error: subjectsError } = await supabase
-        .from('subjects')
-        .select('*')
-        .eq('user_id', user.id);
-
       if (subjectsError) throw subjectsError;
-
-      // Fetch assignments
-      const { data: assignmentsData, error: assignmentsError } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('user_id', user.id);
-
       if (assignmentsError) throw assignmentsError;
-
-      // Fetch exams
-      const { data: examsData, error: examsError } = await supabase
-        .from('exams')
-        .select('*')
-        .eq('user_id', user.id);
-
       if (examsError) throw examsError;
-
-      // Fetch study materials
-      const { data: materialsData, error: materialsError } = await supabase
-        .from('study_materials')
-        .select('*')
-        .eq('user_id', user.id);
-
       if (materialsError) throw materialsError;
 
       // Build nested structure
@@ -188,16 +184,10 @@ export function useSupabaseCurriculum() {
   }, []);
 
   const hasEmptyMarks = useCallback((subject: Subject): boolean => {
-    // Only show notification if there are assignments AND at least one is incomplete
+    // Only check for unfinished assignments, ignore exam marks (midsem/endsem)
     const assignments = subject.assignments || [];
-    const exams = subject.exams || [];
-    
-    // If no assignments and exams, return false (no dot)
-    if (assignments.length === 0 && exams.length === 0) return false;
-    
-    const hasEmptyAssignment = assignments.some((a) => a.marksObtained === null);
-    const hasEmptyExam = exams.some((e) => e.marksObtained === null);
-    return hasEmptyAssignment || hasEmptyExam;
+    if (assignments.length === 0) return false;
+    return assignments.some((a) => a.marksObtained === null);
   }, []);
 
   const semesterHasAllGrades = useCallback((semester: Semester): boolean => {

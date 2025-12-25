@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, FolderOpen, LogOut, GraduationCap } from 'lucide-react';
+import { Plus, FolderOpen, GraduationCap } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { SemesterBlock } from '@/components/SemesterBlock';
 import { SubjectModal } from '@/components/SubjectModal';
 import { DeleteSemesterDialog } from '@/components/DeleteSemesterDialog';
-import { WallpaperSettings } from '@/components/WallpaperSettings';
+import { SettingsSidebar } from '@/components/SettingsSidebar';
 import { useSupabaseCurriculum } from '@/hooks/useSupabaseCurriculum';
 import { useTheme } from '@/hooks/useTheme';
 import { useWallpaper } from '@/hooks/useWallpaper';
@@ -56,6 +56,8 @@ const Index = () => {
     semesterName: string;
   }>({ isOpen: false, semesterId: '', semesterName: '' });
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
@@ -63,27 +65,39 @@ const Index = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const cgpa = getCGPA();
+  // Memoize expensive calculations
+  const cgpa = useMemo(() => getCGPA(), [semesters, getCGPA]);
 
-  const handleDeleteSemester = (semesterId: string, semesterName: string) => {
+  const handleDeleteSemester = useCallback((semesterId: string, semesterName: string) => {
     setDeleteDialog({ isOpen: true, semesterId, semesterName });
-  };
+  }, []);
 
-  const confirmDeleteSemester = () => {
+  const confirmDeleteSemester = useCallback(() => {
     deleteSemester(deleteDialog.semesterId);
-  };
+  }, [deleteSemester, deleteDialog.semesterId]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
     navigate('/auth');
-  };
+  }, [signOut, navigate]);
 
-  // Get the latest subject data from state
-  const currentSubject = selectedSubject
-    ? semesters
-        .find((s) => s.id === selectedSubject.semesterId)
-        ?.subjects.find((sub) => sub.id === selectedSubject.subject.id)
-    : null;
+  // Get the latest subject data from state - memoized
+  const currentSubject = useMemo(() => {
+    if (!selectedSubject) return null;
+    return semesters
+      .find((s) => s.id === selectedSubject.semesterId)
+      ?.subjects.find((sub) => sub.id === selectedSubject.subject.id) || null;
+  }, [selectedSubject, semesters]);
+
+  // Memoize subject modal props to prevent unnecessary re-renders
+  const subjectModalProps = useMemo(() => {
+    if (!currentSubject) return null;
+    const predictedGrade = getSubjectPredictedGrade(currentSubject);
+    return {
+      predictedGrade,
+      letterGrade: predictedGrade !== null ? getLetterGrade(predictedGrade) : 'N/A',
+    };
+  }, [currentSubject, getSubjectPredictedGrade, getLetterGrade]);
 
   // Show loading while checking auth
   if (authLoading || dataLoading) {
@@ -112,13 +126,13 @@ const Index = () => {
       )}
       
       <div className="relative z-10">
-        <Header cgpa={cgpa} theme={theme} onToggleTheme={toggleTheme} hasWallpaper={!!wallpaper}>
-          <WallpaperSettings wallpaper={wallpaper} onSetWallpaper={setWallpaper} />
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
-        </Header>
+        <Header 
+          cgpa={cgpa} 
+          theme={theme} 
+          onToggleTheme={toggleTheme} 
+          hasWallpaper={!!wallpaper}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
 
       <main className="container mx-auto px-4 py-8">
         <motion.div
@@ -194,16 +208,12 @@ const Index = () => {
       </main>
 
       {/* Subject Modal */}
-      {selectedSubject && currentSubject && (
+      {selectedSubject && currentSubject && subjectModalProps && (
         <SubjectModal
           subject={currentSubject}
           semesterId={selectedSubject.semesterId}
-          predictedGrade={getSubjectPredictedGrade(currentSubject)}
-          letterGrade={
-            getSubjectPredictedGrade(currentSubject) !== null
-              ? getLetterGrade(getSubjectPredictedGrade(currentSubject)!)
-              : 'N/A'
-          }
+          predictedGrade={subjectModalProps.predictedGrade}
+          letterGrade={subjectModalProps.letterGrade}
           onClose={() => setSelectedSubject(null)}
           onUpdateSubject={(updates) =>
             updateSubject(selectedSubject.semesterId, currentSubject.id, updates)
@@ -248,6 +258,15 @@ const Index = () => {
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, semesterId: '', semesterName: '' })}
         onConfirm={confirmDeleteSemester}
+      />
+
+      {/* Settings Sidebar */}
+      <SettingsSidebar
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        wallpaper={wallpaper}
+        onSetWallpaper={setWallpaper}
+        onSignOut={handleSignOut}
       />
       </div>
     </div>

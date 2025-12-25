@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Plus, Trash2 } from 'lucide-react';
 import { Semester, Subject } from '@/types/curriculum';
@@ -31,7 +31,7 @@ interface SemesterBlockProps {
 
 const EMOJI_OPTIONS = ['📚', '🎓', '📖', '✨', '🔬', '🎨', '💻', '📐', '🧪', '🌟', '🏆', '📝'];
 
-export function SemesterBlock({
+export const SemesterBlock = memo(function SemesterBlock({
   semester,
   semesterGPA,
   hasAllGrades,
@@ -193,4 +193,4 @@ export function SemesterBlock({
       </motion.div>
     </motion.section>
   );
-}
+});

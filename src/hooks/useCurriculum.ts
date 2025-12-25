@@ -50,9 +50,10 @@ export function useCurriculum() {
   }, []);
 
   const hasEmptyMarks = useCallback((subject: Subject): boolean => {
-    const hasEmptyAssignment = subject.assignments.some((a) => a.marksObtained === null);
-    const hasEmptyExam = (subject.exams || []).some((e) => e.marksObtained === null);
-    return hasEmptyAssignment || hasEmptyExam;
+    // Only check for unfinished assignments, ignore exam marks
+    const assignments = subject.assignments || [];
+    if (assignments.length === 0) return false;
+    return assignments.some((a) => a.marksObtained === null);
   }, []);
 
   const semesterHasAllGrades = useCallback((semester: Semester): boolean => {
