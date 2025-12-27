@@ -75,6 +75,13 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
   return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
 }
 
+// Helper to get contrast color (black or white)
+function getContrastColor(r: number, g: number, b: number): string {
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
 // Parse HSL from CSS variable
 function parseHsl(hslString: string): [number, number, number] {
   const match = hslString.match(/(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%/);
@@ -94,6 +101,11 @@ function setCssVariable(name: string, value: string) {
   document.documentElement.style.setProperty(name, value);
 }
 
+// Helper to remove CSS variable
+function removeCssVariable(name: string) {
+  document.documentElement.style.removeProperty(name);
+}
+
 export function SettingsSidebar({
   isOpen,
   onClose,
@@ -103,23 +115,38 @@ export function SettingsSidebar({
 }: SettingsSidebarProps) {
   const [fontColor, setFontColor] = useState('#000000');
   const [uiColor, setUiColor] = useState('#3b82f6');
+  const [subjectBlockColor, setSubjectBlockColor] = useState('#ffffff');
 
   // Load current colors from CSS variables
   useEffect(() => {
     if (isOpen) {
       const foreground = getCssVariable('--foreground');
       const primary = getCssVariable('--primary');
-      
+      const isDark = document.documentElement.classList.contains('dark');
+
       if (foreground) {
         const [h, s, l] = parseHsl(foreground);
         const [r, g, b] = hslToRgb(h, s, l);
-        setFontColor(`#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`);
+        const hex = `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+
+        // If it's a default theme color (black in light mode or white in dark mode), 
+        // ensure we show it correctly, but don't consider it "custom" if it matches default.
+        setFontColor(hex);
+      } else {
+        setFontColor(isDark ? '#fafafa' : '#0a0a0a');
       }
-      
+
       if (primary) {
         const [h, s, l] = parseHsl(primary);
         const [r, g, b] = hslToRgb(h, s, l);
         setUiColor(`#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`);
+      }
+
+      const subjectBg = getCssVariable('--subject-card-bg');
+      if (subjectBg) {
+        const [h, s, l] = parseHsl(subjectBg);
+        const [r, g, b] = hslToRgb(h, s, l);
+        setSubjectBlockColor(`#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`);
       }
     }
   }, [isOpen]);
@@ -130,11 +157,11 @@ export function SettingsSidebar({
     const g = parseInt(color.slice(3, 5), 16);
     const b = parseInt(color.slice(5, 7), 16);
     const [h, s, l] = rgbToHsl(r, g, b);
-    
+
     setCssVariable('--foreground', `${h} ${s}% ${l}%`);
     setCssVariable('--card-foreground', `${h} ${s}% ${l}%`);
     setCssVariable('--popover-foreground', `${h} ${s}% ${l}%`);
-    
+
     // Save to localStorage
     localStorage.setItem('customFontColor', color);
     localStorage.setItem('customForegroundHsl', `${h} ${s}% ${l}%`);
@@ -146,47 +173,67 @@ export function SettingsSidebar({
     const g = parseInt(color.slice(3, 5), 16);
     const b = parseInt(color.slice(5, 7), 16);
     const [h, s, l] = rgbToHsl(r, g, b);
-    
+
     setCssVariable('--primary', `${h} ${s}% ${l}%`);
     setCssVariable('--accent', `${h} ${s}% ${l}%`);
     setCssVariable('--ring', `${h} ${s}% ${l}%`);
     setCssVariable('--glow-primary', `${h} ${s}% ${l}%`);
-    
+
     // Save to localStorage
     localStorage.setItem('customUiColor', color);
     localStorage.setItem('customPrimaryHsl', `${h} ${s}% ${l}%`);
   };
 
+  const handleSubjectBlockColorChange = (color: string) => {
+    setSubjectBlockColor(color);
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    const [h, s, l] = rgbToHsl(r, g, b);
+
+    // Calculate contrast color
+    const contrastColor = getContrastColor(r, g, b);
+    const [ch, cs, cl] = contrastColor === '#000000' ? [0, 0, 0] : [0, 0, 100];
+
+    // Set CSS variables
+    setCssVariable('--subject-card-bg', `${h} ${s}% ${l}%`);
+    setCssVariable('--subject-card-fg', `${ch} ${cs}% ${cl}%`);
+
+    // Save to localStorage
+    localStorage.setItem('customSubjectBlockColor', color);
+    localStorage.setItem('customSubjectCardBgHsl', `${h} ${s}% ${l}%`);
+    localStorage.setItem('customSubjectCardFgHsl', `${ch} ${cs}% ${cl}%`);
+  };
+
   const handleResetColors = () => {
-    // Reset to default values
+    // Remove all custom color CSS variables
+    const varsToRemove = [
+      '--foreground',
+      '--card-foreground',
+      '--popover-foreground',
+      '--primary',
+      '--accent',
+      '--ring',
+      '--glow-primary',
+      '--subject-card-bg',
+      '--subject-card-fg'
+    ];
+    varsToRemove.forEach(removeCssVariable);
+
+    // Update state to match defaults
     const isDark = document.documentElement.classList.contains('dark');
-    
-    if (isDark) {
-      setCssVariable('--foreground', '0 0% 98%');
-      setCssVariable('--card-foreground', '0 0% 98%');
-      setCssVariable('--popover-foreground', '0 0% 98%');
-      setCssVariable('--primary', '217 91% 60%');
-      setCssVariable('--accent', '217 91% 60%');
-      setCssVariable('--ring', '217 91% 60%');
-      setCssVariable('--glow-primary', '217 91% 60%');
-      setFontColor('#fafafa');
-      setUiColor('#3b82f6');
-    } else {
-      setCssVariable('--foreground', '240 10% 3.9%');
-      setCssVariable('--card-foreground', '240 10% 3.9%');
-      setCssVariable('--popover-foreground', '240 10% 3.9%');
-      setCssVariable('--primary', '221 83% 53%');
-      setCssVariable('--accent', '221 83% 53%');
-      setCssVariable('--ring', '221 83% 53%');
-      setCssVariable('--glow-primary', '221 83% 53%');
-      setFontColor('#0a0a0a');
-      setUiColor('#2563eb');
-    }
-    
+    setFontColor(isDark ? '#fafafa' : '#0a0a0a');
+    setUiColor(isDark ? '#3b82f6' : '#2563eb');
+    setSubjectBlockColor(isDark ? '#0f172a' : '#ffffff');
+
     localStorage.removeItem('customFontColor');
     localStorage.removeItem('customForegroundHsl');
     localStorage.removeItem('customUiColor');
     localStorage.removeItem('customPrimaryHsl');
+    localStorage.removeItem('customSubjectBlockColor');
+    localStorage.removeItem('customSubjectCardBgHsl');
+    localStorage.removeItem('customSubjectCardFgHsl');
+    
     toast.success('Colors reset to default');
   };
 
@@ -204,36 +251,77 @@ export function SettingsSidebar({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Font Color Picker */}
+          {/* Font Color Picker - Only visible when wallpaper is active */}
+          {wallpaper && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Type className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-base font-semibold">Font Color</Label>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="color"
+                    value={fontColor}
+                    onChange={(e) => handleFontColorChange(e.target.value)}
+                    className="h-12 w-20 cursor-pointer"
+                  />
+                  <Input
+                    type="text"
+                    value={fontColor}
+                    onChange={(e) => {
+                      if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                        handleFontColorChange(e.target.value);
+                      } else {
+                        setFontColor(e.target.value);
+                      }
+                    }}
+                    placeholder="#000000"
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  (Overrides default theme color)
+                </p>
+              </div>
+            </div>
+          )}
+
+          {wallpaper && <Separator />}
+
+          {/* Subject Block Color Picker */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Type className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-base font-semibold">Font Color</Label>
+              <div
+                className="h-4 w-4 rounded border border-muted-foreground"
+                style={{ backgroundColor: 'hsl(var(--subject-card-bg))' }}
+              />
+              <Label className="text-base font-semibold">Subject Blocks</Label>
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <Input
                   type="color"
-                  value={fontColor}
-                  onChange={(e) => handleFontColorChange(e.target.value)}
+                  value={subjectBlockColor}
+                  onChange={(e) => handleSubjectBlockColorChange(e.target.value)}
                   className="h-12 w-20 cursor-pointer"
                 />
                 <Input
                   type="text"
-                  value={fontColor}
+                  value={subjectBlockColor}
                   onChange={(e) => {
                     if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
-                      handleFontColorChange(e.target.value);
+                      handleSubjectBlockColorChange(e.target.value);
                     } else {
-                      setFontColor(e.target.value);
+                      setSubjectBlockColor(e.target.value);
                     }
                   }}
-                  placeholder="#000000"
+                  placeholder="#ffffff"
                   className="flex-1"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Controls text color for headings, labels, and content
+                Controls background color for subject cards. Text color auto-adjusts for contrast.
               </p>
             </div>
           </div>
@@ -276,13 +364,29 @@ export function SettingsSidebar({
 
           <Separator />
 
-          {/* Wallpaper Settings */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Image className="h-4 w-4 text-muted-foreground" />
               <Label className="text-base font-semibold">Background Wallpaper</Label>
             </div>
-            <WallpaperSettings wallpaper={wallpaper} onSetWallpaper={onSetWallpaper} inline />
+            <WallpaperSettings
+              wallpaper={wallpaper}
+              onSetWallpaper={(url) => {
+                onSetWallpaper(url);
+                if (!url) {
+                  // If wallpaper is removed, reset font color to default by removing the override
+                  removeCssVariable('--foreground');
+                  removeCssVariable('--card-foreground');
+                  removeCssVariable('--popover-foreground');
+                  
+                  const isDark = document.documentElement.classList.contains('dark');
+                  setFontColor(isDark ? '#fafafa' : '#0a0a0a');
+                  localStorage.removeItem('customFontColor');
+                  localStorage.removeItem('customForegroundHsl');
+                }
+              }}
+              inline
+            />
           </div>
 
           <Separator />

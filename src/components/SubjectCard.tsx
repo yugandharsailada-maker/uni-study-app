@@ -70,16 +70,16 @@ export const SubjectCard = memo(function SubjectCard({
     [onAddPDF]
   );
 
-  const gradedCount = useMemo(() => 
+  const gradedCount = useMemo(() =>
     subject.assignments.filter((a) => a.marksObtained !== null).length +
     (subject.exams || []).filter((e) => e.marksObtained !== null).length,
     [subject.assignments, subject.exams]
   );
-  const totalCount = useMemo(() => 
+  const totalCount = useMemo(() =>
     subject.assignments.length + (subject.exams || []).length,
     [subject.assignments, subject.exams]
   );
-  const materialsCount = useMemo(() => 
+  const materialsCount = useMemo(() =>
     (subject.materials?.length || 0) + (subject.pdfs?.length || 0),
     [subject.materials, subject.pdfs]
   );
@@ -87,15 +87,22 @@ export const SubjectCard = memo(function SubjectCard({
   return (
     <>
       <motion.div
-        layout
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -2 }}
-        transition={{ duration: 0.2 }}
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        whileHover={{
+          y: -5,
+          scale: 1.02,
+          boxShadow: "0 20px 40px -10px rgba(0,0,0,0.15)"
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        style={{
+          backgroundColor: 'hsl(var(--subject-card-bg))',
+          color: 'hsl(var(--subject-card-fg))'
+        }}
         className={cn(
-          'group relative rounded-xl border p-4 cursor-pointer transition-all duration-200',
-          'hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5',
-          hasWallpaper ? 'solid-card' : 'bg-card',
+          'group relative rounded-xl border p-4 cursor-pointer transition-colors duration-200',
+          'hover:border-primary/50',
+          hasWallpaper ? 'solid-card' : 'shadow-sm',
           isDragging && 'drop-zone-active border-dashed border-2'
         )}
         onDragOver={handleDragOver}
@@ -140,14 +147,14 @@ export const SubjectCard = memo(function SubjectCard({
 
         <div className="flex items-start justify-between mb-3 pr-6">
           <div className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
-            <span className="text-xs font-medium text-muted-foreground">
+            <span className="text-xs font-medium text-inherit opacity-70">
               <InlineEdit
                 value={subject.code}
                 onSave={(code) => onUpdateSubject({ code })}
                 inputClassName="text-xs w-20"
               />
             </span>
-            <h3 className="font-semibold text-foreground mt-0.5 leading-tight">
+            <h3 className="font-semibold text-inherit mt-0.5 leading-tight">
               <InlineEdit
                 value={subject.name}
                 onSave={(name) => onUpdateSubject({ name })}
@@ -155,7 +162,7 @@ export const SubjectCard = memo(function SubjectCard({
               />
             </h3>
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
+          <ChevronRight className="h-4 w-4 text-inherit opacity-50 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
         </div>
 
         <div className="flex items-center gap-2 mb-3">
@@ -177,7 +184,7 @@ export const SubjectCard = memo(function SubjectCard({
             ) : (
               <span className="h-4 w-4 rounded-full border-2 border-muted-foreground/30" />
             )}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-inherit opacity-70">
               {gradedCount}/{totalCount} graded
             </span>
           </div>
@@ -191,7 +198,7 @@ export const SubjectCard = memo(function SubjectCard({
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="flex items-center gap-2"
               >
-                <span className="text-sm font-bold text-foreground">{predictedGrade.toFixed(1)}%</span>
+                <span className="text-sm font-bold text-inherit">{predictedGrade.toFixed(1)}%</span>
                 <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                   {letterGrade}
                 </span>
@@ -202,7 +209,7 @@ export const SubjectCard = memo(function SubjectCard({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-xs gpa-pending"
+                className="text-xs italic text-inherit opacity-70"
               >
                 ---
               </motion.span>

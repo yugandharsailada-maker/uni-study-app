@@ -4,23 +4,44 @@ import { Moon, Sun, GraduationCap, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+import { useProfile } from '@/contexts/ProfileContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 interface HeaderProps {
   cgpa: number | null;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   hasWallpaper?: boolean;
   onOpenSettings?: () => void;
+  onOpenProfile?: () => void;
 }
 
-export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWallpaper = false, onOpenSettings }: HeaderProps) {
+export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWallpaper = false, onOpenSettings, onOpenProfile }: HeaderProps) {
+  const { profile } = useProfile();
   const isRevealed = cgpa !== null;
 
   return (
     <header className={cn("sticky top-0 z-50 border-b", hasWallpaper ? "solid-card" : "glass")}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <GraduationCap className="h-5 w-5 text-primary" />
+          <div
+            className="cursor-pointer transition-transform hover:scale-105 active:scale-95"
+            onClick={onOpenProfile}
+          >
+            {profile.profilePic ? (
+              <Avatar className="h-10 w-10 border-2 border-primary/20 hover:border-primary transition-colors">
+                <AvatarImage src={profile.profilePic} className="object-cover" />
+                <AvatarFallback>
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <GraduationCap className="h-5 w-5 text-primary" />
+                  </div>
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors">
+                <GraduationCap className="h-5 w-5 text-primary" />
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Curriculum Dashboard</h1>

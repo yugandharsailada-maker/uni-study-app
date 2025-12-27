@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 import { useCustomColors } from "@/hooks/useCustomColors";
 import { GraduationCap } from "lucide-react";
 
@@ -37,7 +38,7 @@ const LoadingFallback = () => (
 
 const AppContent = () => {
   useCustomColors(); // Load saved custom colors
-  
+
   return (
     <BrowserRouter>
       <Suspense fallback={<LoadingFallback />}>
@@ -55,11 +56,13 @@ const AppContent = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <AppContent />
-      </TooltipProvider>
+      <ProfileProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AppContent />
+        </TooltipProvider>
+      </ProfileProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

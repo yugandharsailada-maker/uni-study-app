@@ -64,13 +64,15 @@ export const SemesterBlock = memo(function SemesterBlock({
     <motion.section
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-8"
+      className="mb-10 relative"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="absolute -left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-primary/50 to-transparent rounded-full hidden lg:block opacity-30" />
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-4">
           <Popover>
             <PopoverTrigger asChild>
-              <button className="p-2 rounded-lg surface-sunken hover:bg-primary/10 transition-colors text-xl cursor-pointer">
+              <button className="h-14 w-14 flex items-center justify-center rounded-2xl bg-gradient-to-br from-background to-secondary shadow-sm border hover:scale-105 transition-transform text-2xl cursor-pointer">
                 {semester.emoji || '📚'}
               </button>
             </PopoverTrigger>
@@ -89,24 +91,26 @@ export const SemesterBlock = memo(function SemesterBlock({
             </PopoverContent>
           </Popover>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">
+            <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
               <InlineEdit
                 value={semester.name}
                 onSave={(name) => onUpdateSemester({ name })}
-                className="hover:bg-primary/5"
+                className="hover:bg-primary/5 rounded px-2 -ml-2"
               />
             </h2>
-            <p className="text-sm text-muted-foreground">
-              {semester.subjects.length} subject{semester.subjects.length !== 1 ? 's' : ''}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                {semester.subjects.length} subject{semester.subjects.length !== 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 px-4 py-2 rounded-lg surface-sunken border">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Semester GPA</span>
-            <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-3 pl-16 sm:pl-0">
+          <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-card border shadow-sm ring-1 ring-border/50">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-muted-foreground">Semester GPA</span>
+            <div className="h-4 w-px bg-border my-auto" />
             <AnimatePresence mode="wait">
               {hasAllGrades && semesterGPA !== null ? (
                 <motion.span
@@ -115,7 +119,7 @@ export const SemesterBlock = memo(function SemesterBlock({
                   animate={{ opacity: 1, filter: 'blur(0px)', x: 0 }}
                   exit={{ opacity: 0, filter: 'blur(8px)', x: -10 }}
                   transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  className="text-lg font-bold text-primary"
+                  className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent"
                 >
                   {semesterGPA.toFixed(2)}
                 </motion.span>
@@ -125,7 +129,7 @@ export const SemesterBlock = memo(function SemesterBlock({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-sm gpa-pending"
+                  className="text-sm gpa-pending px-2"
                 >
                   ---
                 </motion.span>
@@ -137,9 +141,9 @@ export const SemesterBlock = memo(function SemesterBlock({
             variant="ghost"
             size="icon"
             onClick={onDeleteSemester}
-            className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -178,16 +182,22 @@ export const SemesterBlock = memo(function SemesterBlock({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          whileHover={{ y: -2 }}
+          whileHover={{
+            y: -5,
+            scale: 1.02,
+          }}
+          whileTap={{ scale: 0.98 }}
           transition={{ duration: 0.2 }}
           onClick={onAddSubject}
-          className="group relative rounded-xl border-2 border-dashed border-muted-foreground/20 p-6 cursor-pointer transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 flex flex-col items-center justify-center min-h-[140px]"
+          className="group relative rounded-xl border border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 p-6 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center min-h-[140px] overflow-hidden"
         >
-          <div className="p-3 rounded-full bg-muted mb-2 group-hover:bg-primary/10 transition-colors">
-            <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+          <div className="relative z-10 p-4 rounded-full bg-background/50 shadow-sm mb-3 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 ring-1 ring-primary/20">
+            <Plus className="h-6 w-6 transition-colors" />
           </div>
-          <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-            Add Subject
+          <span className="relative z-10 text-sm font-semibold text-primary/80 group-hover:text-primary transition-colors">
+            Add New Subject
           </span>
         </motion.div>
       </motion.div>

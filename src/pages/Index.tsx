@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import { Plus, FolderOpen, GraduationCap } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { SemesterBlock } from '@/components/SemesterBlock';
+import { SemesterSection } from '@/components/SemesterSection';
 import { SubjectModal } from '@/components/SubjectModal';
 import { DeleteSemesterDialog } from '@/components/DeleteSemesterDialog';
 import { SettingsSidebar } from '@/components/SettingsSidebar';
+import { ProfileSidebar } from '@/components/ProfileSidebar';
 import { useSupabaseCurriculum } from '@/hooks/useSupabaseCurriculum';
 import { useTheme } from '@/hooks/useTheme';
 import { useWallpaper } from '@/hooks/useWallpaper';
@@ -57,6 +59,7 @@ const Index = () => {
   }>({ isOpen: false, semesterId: '', semesterName: '' });
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -124,150 +127,149 @@ const Index = () => {
           style={{ backgroundImage: `url(${wallpaper})` }}
         />
       )}
-      
+
       <div className="relative z-10">
-        <Header 
-          cgpa={cgpa} 
-          theme={theme} 
-          onToggleTheme={toggleTheme} 
+        <Header
+          cgpa={cgpa}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           hasWallpaper={!!wallpaper}
           onOpenSettings={() => setSettingsOpen(true)}
+          onOpenProfile={() => setProfileOpen(true)}
         />
 
-      <main className="container mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8 flex items-end justify-between"
-        >
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Academic Overview</h1>
-            <p className="text-muted-foreground">
-              Track your progress, manage assignments, and predict your grades.
-            </p>
-          </div>
-          {semesters.length > 0 && (
-            <Button onClick={addSemester} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Semester
-            </Button>
-          )}
-        </motion.div>
-
-        {semesters.map((semester, index) => (
+        <main className="container mx-auto px-4 py-8">
           <motion.div
-            key={semester.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 * (index + 1) }}
+            transition={{ delay: 0.1 }}
+            className="mb-8 flex items-end justify-between"
           >
-            <SemesterBlock
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
+                Academic Overview
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Track your progress, manage assignments, and predict your grades.
+              </p>
+            </div>
+            {semesters.length > 0 && (
+              <Button onClick={addSemester} className="gap-2 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Plus className="h-5 w-5" />
+                Add Semester
+              </Button>
+            )}
+          </motion.div>
+
+          {semesters.map((semester, index) => (
+            <SemesterSection
+              key={semester.id}
+              index={index}
               semester={semester}
-              semesterGPA={getSemesterGPA(semester)}
-              hasAllGrades={semesterHasAllGrades(semester)}
-              hasWallpaper={!!wallpaper}
+              wallpaper={wallpaper}
+              getSemesterGPA={getSemesterGPA}
+              semesterHasAllGrades={semesterHasAllGrades}
               getSubjectPredictedGrade={getSubjectPredictedGrade}
               hasAtLeastOneGrade={hasAtLeastOneGrade}
               hasEmptyMarks={hasEmptyMarks}
               getLetterGrade={getLetterGrade}
-              onSubjectClick={(subject) =>
-                setSelectedSubject({ subject, semesterId: semester.id })
-              }
-              onUpdateSemester={(updates) => updateSemester(semester.id, updates)}
-              onDeleteSemester={() => handleDeleteSemester(semester.id, semester.name)}
-              onAddSubject={() => addSubject(semester.id)}
-              onUpdateSubject={(subjectId, updates) =>
-                updateSubject(semester.id, subjectId, updates)
-              }
-              onDeleteSubject={(subjectId) => deleteSubject(semester.id, subjectId)}
+              setSelectedSubject={setSelectedSubject}
+              updateSemester={updateSemester}
+              handleDeleteSemester={handleDeleteSemester}
+              addSubject={addSubject}
+              updateSubject={updateSubject}
+              deleteSubject={deleteSubject}
             />
-          </motion.div>
-        ))}
+          ))}
 
-        {/* Empty state */}
-        {semesters.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-24 text-center"
-          >
-            <div className="p-4 rounded-2xl surface-sunken mb-4">
-              <FolderOpen className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">No semesters yet</h2>
-            <p className="text-muted-foreground mb-6 max-w-sm">
-              Get started by creating your first semester to track your academic progress.
-            </p>
-            <Button onClick={addSemester} size="lg" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create First Semester
-            </Button>
-          </motion.div>
+          {/* Empty state */}
+          {semesters.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-24 text-center"
+            >
+              <div className="p-4 rounded-2xl surface-sunken mb-4">
+                <FolderOpen className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">No semesters yet</h2>
+              <p className="text-muted-foreground mb-6 max-w-sm">
+                Get started by creating your first semester to track your academic progress.
+              </p>
+              <Button onClick={addSemester} size="lg" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create First Semester
+              </Button>
+            </motion.div>
+          )}
+        </main>
+
+        {/* Subject Modal */}
+        {selectedSubject && currentSubject && subjectModalProps && (
+          <SubjectModal
+            subject={currentSubject}
+            semesterId={selectedSubject.semesterId}
+            predictedGrade={subjectModalProps.predictedGrade}
+            letterGrade={subjectModalProps.letterGrade}
+            onClose={() => setSelectedSubject(null)}
+            onUpdateSubject={(updates) =>
+              updateSubject(selectedSubject.semesterId, currentSubject.id, updates)
+            }
+            onUpdateAssignment={(assignmentId, updates) =>
+              updateAssignment(
+                selectedSubject.semesterId,
+                currentSubject.id,
+                assignmentId,
+                updates
+              )
+            }
+            onAddAssignment={(assignment) =>
+              addAssignment(selectedSubject.semesterId, currentSubject.id, assignment)
+            }
+            onDeleteAssignment={(assignmentId) =>
+              deleteAssignment(selectedSubject.semesterId, currentSubject.id, assignmentId)
+            }
+            onUpdateExam={(examId, updates) =>
+              updateExam(selectedSubject.semesterId, currentSubject.id, examId, updates)
+            }
+            onAddMaterial={(material) =>
+              addMaterial(selectedSubject.semesterId, currentSubject.id, material)
+            }
+            onUpdateMaterial={(materialId, updates) =>
+              updateMaterial(
+                selectedSubject.semesterId,
+                currentSubject.id,
+                materialId,
+                updates
+              )
+            }
+            onDeleteMaterial={(materialId) =>
+              deleteMaterial(selectedSubject.semesterId, currentSubject.id, materialId)
+            }
+          />
         )}
-      </main>
 
-      {/* Subject Modal */}
-      {selectedSubject && currentSubject && subjectModalProps && (
-        <SubjectModal
-          subject={currentSubject}
-          semesterId={selectedSubject.semesterId}
-          predictedGrade={subjectModalProps.predictedGrade}
-          letterGrade={subjectModalProps.letterGrade}
-          onClose={() => setSelectedSubject(null)}
-          onUpdateSubject={(updates) =>
-            updateSubject(selectedSubject.semesterId, currentSubject.id, updates)
-          }
-          onUpdateAssignment={(assignmentId, updates) =>
-            updateAssignment(
-              selectedSubject.semesterId,
-              currentSubject.id,
-              assignmentId,
-              updates
-            )
-          }
-          onAddAssignment={(assignment) =>
-            addAssignment(selectedSubject.semesterId, currentSubject.id, assignment)
-          }
-          onDeleteAssignment={(assignmentId) =>
-            deleteAssignment(selectedSubject.semesterId, currentSubject.id, assignmentId)
-          }
-          onUpdateExam={(examId, updates) =>
-            updateExam(selectedSubject.semesterId, currentSubject.id, examId, updates)
-          }
-          onAddMaterial={(material) =>
-            addMaterial(selectedSubject.semesterId, currentSubject.id, material)
-          }
-          onUpdateMaterial={(materialId, updates) =>
-            updateMaterial(
-              selectedSubject.semesterId,
-              currentSubject.id,
-              materialId,
-              updates
-            )
-          }
-          onDeleteMaterial={(materialId) =>
-            deleteMaterial(selectedSubject.semesterId, currentSubject.id, materialId)
-          }
+        {/* Delete Semester Dialog */}
+        <DeleteSemesterDialog
+          semesterName={deleteDialog.semesterName}
+          isOpen={deleteDialog.isOpen}
+          onClose={() => setDeleteDialog({ isOpen: false, semesterId: '', semesterName: '' })}
+          onConfirm={confirmDeleteSemester}
         />
-      )}
 
-      {/* Delete Semester Dialog */}
-      <DeleteSemesterDialog
-        semesterName={deleteDialog.semesterName}
-        isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog({ isOpen: false, semesterId: '', semesterName: '' })}
-        onConfirm={confirmDeleteSemester}
-      />
+        {/* Settings Sidebar */}
+        <SettingsSidebar
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          wallpaper={wallpaper}
+          onSetWallpaper={setWallpaper}
+          onSignOut={handleSignOut}
+        />
 
-      {/* Settings Sidebar */}
-      <SettingsSidebar
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        wallpaper={wallpaper}
-        onSetWallpaper={setWallpaper}
-        onSignOut={handleSignOut}
-      />
+        <ProfileSidebar
+          isOpen={profileOpen}
+          onClose={() => setProfileOpen(false)}
+        />
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ export function useSupabaseCurriculum() {
   const { user } = useAuth();
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Track pending operations for optimistic updates
   const pendingOps = useRef<Set<string>>(new Set());
 
@@ -24,78 +24,73 @@ export function useSupabaseCurriculum() {
     }
 
     try {
-      // Fetch all data in parallel for better performance
-      const [
-        { data: semestersData, error: semestersError },
-        { data: subjectsData, error: subjectsError },
-        { data: assignmentsData, error: assignmentsError },
-        { data: examsData, error: examsError },
-        { data: materialsData, error: materialsError },
-      ] = await Promise.all([
-        supabase
-          .from('semesters')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('position'),
-        supabase
-          .from('subjects')
-          .select('*')
-          .eq('user_id', user.id),
-        supabase
-          .from('assignments')
-          .select('*')
-          .eq('user_id', user.id),
-        supabase
-          .from('exams')
-          .select('*')
-          .eq('user_id', user.id),
-        supabase
-          .from('study_materials')
-          .select('*')
-          .eq('user_id', user.id),
-      ]);
+      // Fetch all data in a single relational query for maximum performance
+      const { data: semestersData, error: semestersError } = await supabase
+        .from('semesters')
+        .select(`
+          id,
+          name,
+          emoji,
+          position,
+          subjects (
+            id,
+            name,
+            code,
+            credits,
+            midsem_weight,
+            endsem_weight,
+            assignments (
+              id,
+              name,
+              marks_obtained,
+              max_marks
+            ),
+            exams (
+              id,
+              type,
+              marks_obtained,
+              max_marks
+            ),
+            study_materials (
+              id,
+              name,
+              local_path,
+              created_at
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('position');
 
       if (semestersError) throw semestersError;
-      if (subjectsError) throw subjectsError;
-      if (assignmentsError) throw assignmentsError;
-      if (examsError) throw examsError;
-      if (materialsError) throw materialsError;
 
-      // Build nested structure
-      const builtSemesters: Semester[] = (semestersData || []).map((sem) => {
-        const semSubjects = (subjectsData || []).filter((s) => s.semester_id === sem.id);
-        
-        const subjects: Subject[] = semSubjects.map((subj) => {
-          const subjAssignments: Assignment[] = (assignmentsData || [])
-            .filter((a) => a.subject_id === subj.id)
-            .map((a) => ({
-              id: a.id,
-              name: a.name,
-              weight: 0, // Weight is calculated from remaining
-              marksObtained: a.marks_obtained,
-              maxMarks: a.max_marks,
-              confidence: 50,
-            }));
+      // Build nested structure from the single response
+      const builtSemesters: Semester[] = (semestersData || []).map((sem: any) => {
+        const subjects: Subject[] = sem.subjects.map((subj: any) => {
+          const subjAssignments: Assignment[] = (subj.assignments || []).map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            weight: 0,
+            marksObtained: a.marks_obtained,
+            maxMarks: a.max_marks,
+            confidence: 50,
+          }));
 
-          const subjExams: Exam[] = (examsData || [])
-            .filter((e) => e.subject_id === subj.id)
-            .map((e) => ({
-              id: e.id,
-              name: e.type === 'midsem' ? 'Midsem' : 'Endsem',
-              weight: e.type === 'midsem' ? subj.midsem_weight : subj.endsem_weight,
-              marksObtained: e.marks_obtained,
-              maxMarks: e.max_marks,
-            }));
+          const subjExams: Exam[] = (subj.exams || []).map((e: any) => ({
+            id: e.id,
+            name: e.type === 'midsem' ? 'Midsem' : 'Endsem',
+            weight: e.type === 'midsem' ? subj.midsem_weight : subj.endsem_weight,
+            marksObtained: e.marks_obtained,
+            maxMarks: e.max_marks,
+          }));
 
-          const subjMaterials: StudyMaterial[] = (materialsData || [])
-            .filter((m) => m.subject_id === subj.id)
-            .map((m) => ({
-              id: m.id,
-              name: m.name,
-              type: 'pdf' as const,
-              localPath: m.local_path,
-              uploadedAt: new Date(m.created_at),
-            }));
+          const subjMaterials: StudyMaterial[] = (subj.study_materials || []).map((m: any) => ({
+            id: m.id,
+            name: m.name,
+            type: 'pdf' as const,
+            localPath: m.local_path,
+            uploadedAt: new Date(m.created_at),
+          }));
 
           return {
             id: subj.id,
@@ -315,10 +310,14 @@ export function useSupabaseCurriculum() {
     setSemesters((prev) => prev.filter((s) => s.id !== semesterId));
   }, []);
 
+  // Track adding state to prevent duplicates
+  const [isAddingSubject, setIsAddingSubject] = useState(false);
+
   // Subject CRUD with Optimistic Updates
   const addSubject = useCallback(async (semesterId: string) => {
-    if (!user) return;
+    if (!user || isAddingSubject) return;
 
+    setIsAddingSubject(true);
     const tempId = generateTempId();
     const newSubject: Subject = {
       id: tempId,
@@ -378,23 +377,23 @@ export function useSupabaseCurriculum() {
         prev.map((sem) =>
           sem.id === semesterId
             ? {
-                ...sem,
-                subjects: sem.subjects.map((s) =>
-                  s.id === tempId
-                    ? {
-                        ...s,
-                        id: data.id,
-                        exams: examsData.map((e) => ({
-                          id: e.id,
-                          name: e.type === 'midsem' ? 'Midsem' : 'Endsem',
-                          weight: e.type === 'midsem' ? 20 : 40,
-                          marksObtained: e.marks_obtained,
-                          maxMarks: e.max_marks,
-                        })),
-                      }
-                    : s
-                ),
-              }
+              ...sem,
+              subjects: sem.subjects.map((s) =>
+                s.id === tempId
+                  ? {
+                    ...s,
+                    id: data.id,
+                    exams: examsData.map((e) => ({
+                      id: e.id,
+                      name: e.type === 'midsem' ? 'Midsem' : 'Endsem',
+                      weight: e.type === 'midsem' ? 20 : 40,
+                      marksObtained: e.marks_obtained,
+                      maxMarks: e.max_marks,
+                    })),
+                  }
+                  : s
+              ),
+            }
             : sem
         )
       );
@@ -408,8 +407,10 @@ export function useSupabaseCurriculum() {
         )
       );
       toast.error('Failed to create subject');
+    } finally {
+      setIsAddingSubject(false);
     }
-  }, [user]);
+  }, [user, isAddingSubject]);
 
   const updateSubject = useCallback(async (semesterId: string, subjectId: string, updates: Partial<Subject>) => {
     const dbUpdates: any = {};
@@ -431,9 +432,9 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) => (s.id === subjectId ? { ...s, ...updates } : s)),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) => (s.id === subjectId ? { ...s, ...updates } : s)),
+          }
           : sem
       )
     );
@@ -475,11 +476,11 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) =>
-                s.id === subjectId ? { ...s, assignments: [...s.assignments, newAssignment] } : s
-              ),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) =>
+              s.id === subjectId ? { ...s, assignments: [...s.assignments, newAssignment] } : s
+            ),
+          }
           : sem
       )
     );
@@ -504,18 +505,18 @@ export function useSupabaseCurriculum() {
         prev.map((sem) =>
           sem.id === semesterId
             ? {
-                ...sem,
-                subjects: sem.subjects.map((s) =>
-                  s.id === subjectId
-                    ? {
-                        ...s,
-                        assignments: s.assignments.map((a) =>
-                          a.id === tempId ? { ...a, id: data.id } : a
-                        ),
-                      }
-                    : s
-                ),
-              }
+              ...sem,
+              subjects: sem.subjects.map((s) =>
+                s.id === subjectId
+                  ? {
+                    ...s,
+                    assignments: s.assignments.map((a) =>
+                      a.id === tempId ? { ...a, id: data.id } : a
+                    ),
+                  }
+                  : s
+              ),
+            }
             : sem
         )
       );
@@ -525,13 +526,13 @@ export function useSupabaseCurriculum() {
         prev.map((sem) =>
           sem.id === semesterId
             ? {
-                ...sem,
-                subjects: sem.subjects.map((s) =>
-                  s.id === subjectId
-                    ? { ...s, assignments: s.assignments.filter((a) => a.id !== tempId) }
-                    : s
-                ),
-              }
+              ...sem,
+              subjects: sem.subjects.map((s) =>
+                s.id === subjectId
+                  ? { ...s, assignments: s.assignments.filter((a) => a.id !== tempId) }
+                  : s
+              ),
+            }
             : sem
         )
       );
@@ -557,16 +558,16 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) =>
-                s.id === subjectId
-                  ? {
-                      ...s,
-                      assignments: s.assignments.map((a) => (a.id === assignmentId ? { ...a, ...updates } : a)),
-                    }
-                  : s
-              ),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) =>
+              s.id === subjectId
+                ? {
+                  ...s,
+                  assignments: s.assignments.map((a) => (a.id === assignmentId ? { ...a, ...updates } : a)),
+                }
+                : s
+            ),
+          }
           : sem
       )
     );
@@ -584,11 +585,11 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) =>
-                s.id === subjectId ? { ...s, assignments: s.assignments.filter((a) => a.id !== assignmentId) } : s
-              ),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) =>
+              s.id === subjectId ? { ...s, assignments: s.assignments.filter((a) => a.id !== assignmentId) } : s
+            ),
+          }
           : sem
       )
     );
@@ -612,16 +613,16 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) =>
-                s.id === subjectId
-                  ? {
-                      ...s,
-                      exams: (s.exams || []).map((e) => (e.id === examId ? { ...e, ...updates } : e)),
-                    }
-                  : s
-              ),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) =>
+              s.id === subjectId
+                ? {
+                  ...s,
+                  exams: (s.exams || []).map((e) => (e.id === examId ? { ...e, ...updates } : e)),
+                }
+                : s
+            ),
+          }
           : sem
       )
     );
@@ -659,11 +660,11 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) =>
-                s.id === subjectId ? { ...s, materials: [...(s.materials || []), newMaterial] } : s
-              ),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) =>
+              s.id === subjectId ? { ...s, materials: [...(s.materials || []), newMaterial] } : s
+            ),
+          }
           : sem
       )
     );
@@ -686,16 +687,16 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) =>
-                s.id === subjectId
-                  ? {
-                      ...s,
-                      materials: (s.materials || []).map((m) => (m.id === materialId ? { ...m, ...updates } : m)),
-                    }
-                  : s
-              ),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) =>
+              s.id === subjectId
+                ? {
+                  ...s,
+                  materials: (s.materials || []).map((m) => (m.id === materialId ? { ...m, ...updates } : m)),
+                }
+                : s
+            ),
+          }
           : sem
       )
     );
@@ -713,11 +714,11 @@ export function useSupabaseCurriculum() {
       prev.map((sem) =>
         sem.id === semesterId
           ? {
-              ...sem,
-              subjects: sem.subjects.map((s) =>
-                s.id === subjectId ? { ...s, materials: (s.materials || []).filter((m) => m.id !== materialId) } : s
-              ),
-            }
+            ...sem,
+            subjects: sem.subjects.map((s) =>
+              s.id === subjectId ? { ...s, materials: (s.materials || []).filter((m) => m.id !== materialId) } : s
+            ),
+          }
           : sem
       )
     );

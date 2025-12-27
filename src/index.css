@@ -56,7 +56,11 @@
     --surface-elevated: 0 0% 100%;
     --surface-sunken: 240 4.8% 95.9%;
     --text-tertiary: 240 3.8% 60%;
-    
+
+    /* Subject Card Customization Defaults (matches card) */
+    --subject-card-bg: 0 0% 100%;
+    --subject-card-fg: 240 10% 3.9%;
+
     /* Solid card backgrounds for wallpaper mode */
     --card-solid: 0 0% 100%;
   }
@@ -110,7 +114,11 @@
     --surface-elevated: 240 10% 8%;
     --surface-sunken: 240 10% 5%;
     --text-tertiary: 240 5% 50%;
-    
+
+    /* Subject Card Customization Defaults (matches card) */
+    --subject-card-bg: 240 10% 6%;
+    --subject-card-fg: 0 0% 98%;
+
     /* Solid card backgrounds for wallpaper mode */
     --card-solid: 0 0% 0%;
   }
@@ -134,7 +142,7 @@
 @layer utilities {
   .glow-primary {
     box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.15),
-                0 0 40px hsl(var(--glow-primary) / 0.1);
+      0 0 40px hsl(var(--glow-primary) / 0.1);
   }
 
   .glass {
@@ -163,6 +171,7 @@
       filter: blur(4px);
       transform: translateY(4px);
     }
+
     to {
       opacity: 1;
       filter: blur(0);
@@ -175,8 +184,13 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 
   .drop-zone-active {
@@ -189,7 +203,7 @@
 
   /* Solid backgrounds for wallpaper mode */
   .solid-card {
-    background-color: hsl(var(--card-solid)) !important;
+    background-color: hsl(var(--card-solid));
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   }
 }
