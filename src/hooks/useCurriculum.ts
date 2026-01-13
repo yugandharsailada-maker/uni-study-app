@@ -62,12 +62,14 @@ export function useCurriculum() {
   }, [hasAtLeastOneGrade]);
 
   const getGradePoint = useCallback((score: number): number => {
-    const grade = GRADE_SCALE.find((g) => score >= g.minScore && score <= g.maxScore);
+    const roundedScore = Math.round(score * 100) / 100;
+    const grade = GRADE_SCALE.find((g) => roundedScore >= g.minScore);
     return grade?.points ?? 0;
   }, []);
 
   const getLetterGrade = useCallback((score: number): string => {
-    const grade = GRADE_SCALE.find((g) => score >= g.minScore && score <= g.maxScore);
+    const roundedScore = Math.round(score * 100) / 100;
+    const grade = GRADE_SCALE.find((g) => roundedScore >= g.minScore);
     return grade?.grade ?? 'F';
   }, []);
 
@@ -95,26 +97,26 @@ export function useCurriculum() {
 
   const getCGPA = useCallback((): number | null => {
     if (semesters.length === 0) return null;
-    const allSemestersComplete = semesters.every((s) => semesterHasAllGrades(s));
-    if (!allSemestersComplete) return null;
 
     let totalPoints = 0;
     let totalCredits = 0;
 
     semesters.forEach((semester) => {
       semester.subjects.forEach((subject) => {
-        const predictedGrade = getSubjectPredictedGrade(subject);
-        if (predictedGrade !== null) {
-          const gradePoint = getGradePoint(predictedGrade);
-          totalPoints += gradePoint * subject.credits;
-          totalCredits += subject.credits;
+        if (hasAtLeastOneGrade(subject)) {
+          const predictedGrade = getSubjectPredictedGrade(subject);
+          if (predictedGrade !== null) {
+            const gradePoint = getGradePoint(predictedGrade);
+            totalPoints += gradePoint * subject.credits;
+            totalCredits += subject.credits;
+          }
         }
       });
     });
 
     if (totalCredits === 0) return null;
     return totalPoints / totalCredits;
-  }, [semesters, semesterHasAllGrades, getSubjectPredictedGrade, getGradePoint]);
+  }, [semesters, hasAtLeastOneGrade, getSubjectPredictedGrade, getGradePoint]);
 
   // Semester CRUD
   const addSemester = useCallback(() => {
@@ -169,11 +171,11 @@ export function useCurriculum() {
         prev.map((semester) =>
           semester.id === semesterId
             ? {
-                ...semester,
-                subjects: semester.subjects.map((subject) =>
-                  subject.id === subjectId ? { ...subject, ...updates } : subject
-                ),
-              }
+              ...semester,
+              subjects: semester.subjects.map((subject) =>
+                subject.id === subjectId ? { ...subject, ...updates } : subject
+              ),
+            }
             : semester
         )
       );
@@ -186,9 +188,9 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.filter((s) => s.id !== subjectId),
-            }
+            ...semester,
+            subjects: semester.subjects.filter((s) => s.id !== subjectId),
+          }
           : semester
       )
     );
@@ -200,20 +202,20 @@ export function useCurriculum() {
         prev.map((semester) =>
           semester.id === semesterId
             ? {
-                ...semester,
-                subjects: semester.subjects.map((subject) =>
-                  subject.id === subjectId
-                    ? {
-                        ...subject,
-                        assignments: subject.assignments.map((assignment) =>
-                          assignment.id === assignmentId
-                            ? { ...assignment, ...updates }
-                            : assignment
-                        ),
-                      }
-                    : subject
-                ),
-              }
+              ...semester,
+              subjects: semester.subjects.map((subject) =>
+                subject.id === subjectId
+                  ? {
+                    ...subject,
+                    assignments: subject.assignments.map((assignment) =>
+                      assignment.id === assignmentId
+                        ? { ...assignment, ...updates }
+                        : assignment
+                    ),
+                  }
+                  : subject
+              ),
+            }
             : semester
         )
       );
@@ -227,13 +229,13 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.map((subject) =>
-                subject.id === subjectId
-                  ? { ...subject, assignments: [...subject.assignments, newAssignment] }
-                  : subject
-              ),
-            }
+            ...semester,
+            subjects: semester.subjects.map((subject) =>
+              subject.id === subjectId
+                ? { ...subject, assignments: [...subject.assignments, newAssignment] }
+                : subject
+            ),
+          }
           : semester
       )
     );
@@ -244,16 +246,16 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.map((subject) =>
-                subject.id === subjectId
-                  ? {
-                      ...subject,
-                      assignments: subject.assignments.filter((a) => a.id !== assignmentId),
-                    }
-                  : subject
-              ),
-            }
+            ...semester,
+            subjects: semester.subjects.map((subject) =>
+              subject.id === subjectId
+                ? {
+                  ...subject,
+                  assignments: subject.assignments.filter((a) => a.id !== assignmentId),
+                }
+                : subject
+            ),
+          }
           : semester
       )
     );
@@ -266,18 +268,18 @@ export function useCurriculum() {
         prev.map((semester) =>
           semester.id === semesterId
             ? {
-                ...semester,
-                subjects: semester.subjects.map((subject) =>
-                  subject.id === subjectId
-                    ? {
-                        ...subject,
-                        exams: (subject.exams || []).map((exam) =>
-                          exam.id === examId ? { ...exam, ...updates } : exam
-                        ),
-                      }
-                    : subject
-                ),
-              }
+              ...semester,
+              subjects: semester.subjects.map((subject) =>
+                subject.id === subjectId
+                  ? {
+                    ...subject,
+                    exams: (subject.exams || []).map((exam) =>
+                      exam.id === examId ? { ...exam, ...updates } : exam
+                    ),
+                  }
+                  : subject
+              ),
+            }
             : semester
         )
       );
@@ -291,13 +293,13 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.map((subject) =>
-                subject.id === subjectId
-                  ? { ...subject, exams: [...(subject.exams || []), newExam] }
-                  : subject
-              ),
-            }
+            ...semester,
+            subjects: semester.subjects.map((subject) =>
+              subject.id === subjectId
+                ? { ...subject, exams: [...(subject.exams || []), newExam] }
+                : subject
+            ),
+          }
           : semester
       )
     );
@@ -308,13 +310,13 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.map((subject) =>
-                subject.id === subjectId
-                  ? { ...subject, exams: (subject.exams || []).filter((e) => e.id !== examId) }
-                  : subject
-              ),
-            }
+            ...semester,
+            subjects: semester.subjects.map((subject) =>
+              subject.id === subjectId
+                ? { ...subject, exams: (subject.exams || []).filter((e) => e.id !== examId) }
+                : subject
+            ),
+          }
           : semester
       )
     );
@@ -332,13 +334,13 @@ export function useCurriculum() {
         prev.map((semester) =>
           semester.id === semesterId
             ? {
-                ...semester,
-                subjects: semester.subjects.map((subject) =>
-                  subject.id === subjectId
-                    ? { ...subject, materials: [...(subject.materials || []), newMaterial] }
-                    : subject
-                ),
-              }
+              ...semester,
+              subjects: semester.subjects.map((subject) =>
+                subject.id === subjectId
+                  ? { ...subject, materials: [...(subject.materials || []), newMaterial] }
+                  : subject
+              ),
+            }
             : semester
         )
       );
@@ -352,18 +354,18 @@ export function useCurriculum() {
         prev.map((semester) =>
           semester.id === semesterId
             ? {
-                ...semester,
-                subjects: semester.subjects.map((subject) =>
-                  subject.id === subjectId
-                    ? {
-                        ...subject,
-                        materials: (subject.materials || []).map((m) =>
-                          m.id === materialId ? { ...m, ...updates } : m
-                        ),
-                      }
-                    : subject
-                ),
-              }
+              ...semester,
+              subjects: semester.subjects.map((subject) =>
+                subject.id === subjectId
+                  ? {
+                    ...subject,
+                    materials: (subject.materials || []).map((m) =>
+                      m.id === materialId ? { ...m, ...updates } : m
+                    ),
+                  }
+                  : subject
+              ),
+            }
             : semester
         )
       );
@@ -376,17 +378,17 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.map((subject) =>
-                subject.id === subjectId
-                  ? {
-                      ...subject,
-                      materials: (subject.materials || []).filter((m) => m.id !== materialId),
-                      pdfs: (subject.pdfs || []).filter((p) => p.id !== materialId),
-                    }
-                  : subject
-              ),
-            }
+            ...semester,
+            subjects: semester.subjects.map((subject) =>
+              subject.id === subjectId
+                ? {
+                  ...subject,
+                  materials: (subject.materials || []).filter((m) => m.id !== materialId),
+                  pdfs: (subject.pdfs || []).filter((p) => p.id !== materialId),
+                }
+                : subject
+            ),
+          }
           : semester
       )
     );
@@ -404,13 +406,13 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.map((subject) =>
-                subject.id === subjectId
-                  ? { ...subject, pdfs: [...(subject.pdfs || []), newPDF] }
-                  : subject
-              ),
-            }
+            ...semester,
+            subjects: semester.subjects.map((subject) =>
+              subject.id === subjectId
+                ? { ...subject, pdfs: [...(subject.pdfs || []), newPDF] }
+                : subject
+            ),
+          }
           : semester
       )
     );
@@ -421,13 +423,13 @@ export function useCurriculum() {
       prev.map((semester) =>
         semester.id === semesterId
           ? {
-              ...semester,
-              subjects: semester.subjects.map((subject) =>
-                subject.id === subjectId
-                  ? { ...subject, pdfs: (subject.pdfs || []).filter((p) => p.id !== pdfId) }
-                  : subject
-              ),
-            }
+            ...semester,
+            subjects: semester.subjects.map((subject) =>
+              subject.id === subjectId
+                ? { ...subject, pdfs: (subject.pdfs || []).filter((p) => p.id !== pdfId) }
+                : subject
+            ),
+          }
           : semester
       )
     );

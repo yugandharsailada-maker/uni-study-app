@@ -8,6 +8,7 @@ export interface ProfileData {
     aboutMe: string;
     pin: string | null;
     pinHint: string | null;
+    name: string;
 }
 
 const DEFAULT_PROFILE: ProfileData = {
@@ -17,6 +18,7 @@ const DEFAULT_PROFILE: ProfileData = {
     aboutMe: '',
     pin: null,
     pinHint: null,
+    name: '',
 };
 
 interface ProfileContextType {

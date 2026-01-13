@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { GraduationCap } from 'lucide-react';
+import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -28,7 +28,7 @@ export default function Auth() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse">
-          <GraduationCap className="h-12 w-12 text-primary" />
+          <Logo className="h-12 w-12 text-primary" />
         </div>
       </div>
     );
@@ -46,7 +46,7 @@ export default function Auth() {
           {/* Logo & Title */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center p-3 rounded-xl bg-primary/10 mb-4">
-              <GraduationCap className="h-10 w-10 text-primary" />
+              <Logo className="h-10 w-10 text-primary" />
             </div>
             <h1 className="text-2xl font-bold mb-2">Uni-Study</h1>
             <p className="text-muted-foreground">

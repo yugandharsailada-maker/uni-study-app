@@ -21,6 +21,7 @@ type DeferredNumberInputProps = {
   max?: number;
   disabled?: boolean;
   "aria-label"?: string;
+  id?: string;
 };
 
 export function DeferredNumberInput({
@@ -34,6 +35,7 @@ export function DeferredNumberInput({
   min,
   max,
   disabled,
+  id,
   ...rest
 }: DeferredNumberInputProps) {
   const [draft, setDraft] = useState<string>(value ?? value === 0 ? String(value) : "");

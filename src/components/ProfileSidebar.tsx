@@ -9,8 +9,8 @@ import {
     Camera,
     ShieldCheck,
     ChevronRight,
-    GraduationCap
 } from 'lucide-react';
+import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -116,7 +116,7 @@ export function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps) {
                                 <Avatar className="h-24 w-24 border-2 border-primary/20 group-hover:border-primary transition-colors">
                                     <AvatarImage src={profile.profilePic || undefined} className="object-cover" />
                                     <AvatarFallback className="bg-primary/5 text-primary">
-                                        <GraduationCap className="h-10 w-10" />
+                                        <Logo className="h-10 w-10" />
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -126,11 +126,14 @@ export function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps) {
                                     type="file"
                                     ref={fileInputRef}
                                     className="hidden"
-                                    accept="image/*"
+                                    accept="image/png, image/jpeg"
                                     onChange={handleFileChange}
                                 />
                             </div>
-                            <p className="text-sm text-muted-foreground">Tap to update photo</p>
+                            <p className="text-sm text-muted-foreground text-center">
+                                Tap to update photo<br />
+                                <span className="text-xs opacity-70">PNG, JPG up to 2MB</span>
+                            </p>
                         </div>
 
                         <Separator />
@@ -143,6 +146,16 @@ export function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps) {
                             </div>
 
                             <div className="space-y-3">
+                                <div className="space-y-1">
+                                    <Label htmlFor="name">Student Name</Label>
+                                    <Input
+                                        id="name"
+                                        placeholder="e.g. John Doe"
+                                        value={profile.name}
+                                        onChange={(e) => updateProfile({ name: e.target.value })}
+                                    />
+                                </div>
+
                                 <div className="space-y-1">
                                     <Label htmlFor="college">College Name</Label>
                                     <Input
@@ -213,10 +226,29 @@ export function ProfileSidebar({ isOpen, onClose }: ProfileSidebarProps) {
                                         <Textarea
                                             autoFocus
                                             placeholder="Write something about yourself..."
-                                            className="min-h-[150px] resize-none border-0 shadow-none focus-visible:ring-0 p-0 text-base"
+                                            className="min-h-[150px] resize-none border-0 shadow-none focus-visible:ring-0 p-0 text-base bg-transparent"
                                             value={profile.aboutMe}
                                             onChange={(e) => updateProfile({ aboutMe: e.target.value })}
                                         />
+                                        <div className="flex gap-2 justify-end pt-2 border-t border-border/50">
+                                            <Button variant="ghost" size="sm" onClick={handleSetPinClick} className="text-xs h-7">
+                                                Change PIN
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-xs h-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => {
+                                                    if (window.confirm("Remove PIN protection?")) {
+                                                        updateProfile({ pin: undefined, pinHint: undefined });
+                                                        setIsLocked(false);
+                                                        toast.success("PIN protection removed");
+                                                    }
+                                                }}
+                                            >
+                                                Remove PIN
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                             </div>

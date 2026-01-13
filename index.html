@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.classList.remove('dark', 'light');
+        document.documentElement.classList.add(theme);
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Uni-Study - Student Grade Tracker</title>
@@ -16,7 +23,7 @@
   <meta name="twitter:title" content="Uni-Study - Student Grade Tracker">
   <meta property="og:description" content="A tool for students to track subjects and calculate weighted assignment marks.">
   <meta name="twitter:description" content="A tool for students to track subjects and calculate weighted assignment marks.">
-  <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/gpt-engineer-file-uploads/pCXhWal7MDcEOFwPbaEGRrG0rUl2/uploads/1766407672997-unistudy.png">
+  <link rel="icon" type="image/png" href="/icon.png">
 </head>
 
   <body>

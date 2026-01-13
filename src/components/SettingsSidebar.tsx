@@ -13,6 +13,10 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { WallpaperSettings } from './WallpaperSettings';
+import { usePreferences } from '@/contexts/PreferencesContext';
+import { useTheme } from '@/hooks/useTheme';
+import { Switch } from '@/components/ui/switch';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface SettingsSidebarProps {
   isOpen: boolean;
@@ -113,6 +117,8 @@ export function SettingsSidebar({
   onSetWallpaper,
   onSignOut,
 }: SettingsSidebarProps) {
+  const { showGrades, setShowGrades } = usePreferences();
+  const { theme, toggleTheme } = useTheme();
   const [fontColor, setFontColor] = useState('#000000');
   const [uiColor, setUiColor] = useState('#3b82f6');
   const [subjectBlockColor, setSubjectBlockColor] = useState('#ffffff');
@@ -162,8 +168,10 @@ export function SettingsSidebar({
     setCssVariable('--card-foreground', `${h} ${s}% ${l}%`);
     setCssVariable('--popover-foreground', `${h} ${s}% ${l}%`);
 
-    // Save to localStorage
+    // Save to localStorage (theme-scoped)
+    const themeKey = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     localStorage.setItem('customFontColor', color);
+    localStorage.setItem(`customForegroundHsl_${themeKey}`, `${h} ${s}% ${l}%`);
     localStorage.setItem('customForegroundHsl', `${h} ${s}% ${l}%`);
   };
 
@@ -179,8 +187,10 @@ export function SettingsSidebar({
     setCssVariable('--ring', `${h} ${s}% ${l}%`);
     setCssVariable('--glow-primary', `${h} ${s}% ${l}%`);
 
-    // Save to localStorage
+    // Save to localStorage (theme-scoped)
+    const themeUiKey = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     localStorage.setItem('customUiColor', color);
+    localStorage.setItem(`customPrimaryHsl_${themeUiKey}`, `${h} ${s}% ${l}%`);
     localStorage.setItem('customPrimaryHsl', `${h} ${s}% ${l}%`);
   };
 
@@ -199,8 +209,11 @@ export function SettingsSidebar({
     setCssVariable('--subject-card-bg', `${h} ${s}% ${l}%`);
     setCssVariable('--subject-card-fg', `${ch} ${cs}% ${cl}%`);
 
-    // Save to localStorage
+    // Save to localStorage (theme-scoped)
+    const themeSubKey = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     localStorage.setItem('customSubjectBlockColor', color);
+    localStorage.setItem(`customSubjectCardBgHsl_${themeSubKey}`, `${h} ${s}% ${l}%`);
+    localStorage.setItem(`customSubjectCardFgHsl_${themeSubKey}`, `${ch} ${cs}% ${cl}%`);
     localStorage.setItem('customSubjectCardBgHsl', `${h} ${s}% ${l}%`);
     localStorage.setItem('customSubjectCardFgHsl', `${ch} ${cs}% ${cl}%`);
   };
@@ -226,14 +239,23 @@ export function SettingsSidebar({
     setUiColor(isDark ? '#3b82f6' : '#2563eb');
     setSubjectBlockColor(isDark ? '#0f172a' : '#ffffff');
 
+    // Remove both theme-scoped and legacy keys
     localStorage.removeItem('customFontColor');
     localStorage.removeItem('customForegroundHsl');
+    localStorage.removeItem('customForegroundHsl_dark');
+    localStorage.removeItem('customForegroundHsl_light');
     localStorage.removeItem('customUiColor');
     localStorage.removeItem('customPrimaryHsl');
+    localStorage.removeItem('customPrimaryHsl_dark');
+    localStorage.removeItem('customPrimaryHsl_light');
     localStorage.removeItem('customSubjectBlockColor');
     localStorage.removeItem('customSubjectCardBgHsl');
+    localStorage.removeItem('customSubjectCardBgHsl_dark');
+    localStorage.removeItem('customSubjectCardBgHsl_light');
     localStorage.removeItem('customSubjectCardFgHsl');
-    
+    localStorage.removeItem('customSubjectCardFgHsl_dark');
+    localStorage.removeItem('customSubjectCardFgHsl_light');
+
     toast.success('Colors reset to default');
   };
 
@@ -251,6 +273,48 @@ export function SettingsSidebar({
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
+          {/* Privacy Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {showGrades ? (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                )}
+                <Label className="text-base font-semibold">Show Grades</Label>
+              </div>
+              <Switch
+                checked={showGrades}
+                onCheckedChange={setShowGrades}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Toggle visibility of CGPA, SGPA, and individual subject marks.
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Theme Toggle */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Palette className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-base font-semibold">Dark Mode</Label>
+              </div>
+              <Switch
+                checked={theme === 'dark'}
+                onCheckedChange={toggleTheme}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Toggle between light and dark themes.
+            </p>
+          </div>
+
+          <Separator />
+
           {/* Font Color Picker - Only visible when wallpaper is active */}
           {wallpaper && (
             <div className="space-y-3">
@@ -378,7 +442,7 @@ export function SettingsSidebar({
                   removeCssVariable('--foreground');
                   removeCssVariable('--card-foreground');
                   removeCssVariable('--popover-foreground');
-                  
+
                   const isDark = document.documentElement.classList.contains('dark');
                   setFontColor(isDark ? '#fafafa' : '#0a0a0a');
                   localStorage.removeItem('customFontColor');

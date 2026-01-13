@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Semester, Subject, Assignment, Exam, StudyMaterial, GRADE_SCALE } from '@/types/curriculum';
 import { toast } from 'sonner';
+import * as GradeLib from '@/lib/grades';
 
 // Generate temporary IDs for optimistic updates
 const generateTempId = () => `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -11,6 +12,10 @@ export function useSupabaseCurriculum() {
   const { user } = useAuth();
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Simulation State
+  const [isSimulationMode, setIsSimulationMode] = useState(false);
+  const [simulatedGrades, setSimulatedGrades] = useState<Record<string, string>>({});
 
   // Track pending operations for optimistic updates
   const pendingOps = useRef<Set<string>>(new Set());
@@ -43,13 +48,17 @@ export function useSupabaseCurriculum() {
               id,
               name,
               marks_obtained,
-              max_marks
+              max_marks,
+              due_date,
+              weight,
+              confidence
             ),
             exams (
               id,
               type,
               marks_obtained,
-              max_marks
+              max_marks,
+              date
             ),
             study_materials (
               id,
@@ -70,10 +79,11 @@ export function useSupabaseCurriculum() {
           const subjAssignments: Assignment[] = (subj.assignments || []).map((a: any) => ({
             id: a.id,
             name: a.name,
-            weight: 0,
+            weight: a.weight,
             marksObtained: a.marks_obtained,
             maxMarks: a.max_marks,
-            confidence: 50,
+            confidence: a.confidence,
+            dueDate: a.due_date ? new Date(a.due_date) : undefined
           }));
 
           const subjExams: Exam[] = (subj.exams || []).map((e: any) => ({
@@ -82,6 +92,7 @@ export function useSupabaseCurriculum() {
             weight: e.type === 'midsem' ? subj.midsem_weight : subj.endsem_weight,
             marksObtained: e.marks_obtained,
             maxMarks: e.max_marks,
+            date: e.date ? new Date(e.date) : undefined
           }));
 
           const subjMaterials: StudyMaterial[] = (subj.study_materials || []).map((m: any) => ({
@@ -127,123 +138,69 @@ export function useSupabaseCurriculum() {
     fetchData();
   }, [fetchData]);
 
+  // Simulation Controls
+  const toggleSimulationMode = useCallback(() => {
+    setIsSimulationMode(prev => !prev);
+  }, []);
+
+  const setSimulatedGrade = useCallback((subjectId: string, grade: string) => {
+    setSimulatedGrades(prev => ({
+      ...prev,
+      [subjectId]: grade
+    }));
+  }, []);
+
+  const resetSimulation = useCallback(() => {
+    setSimulatedGrades({});
+    setIsSimulationMode(false);
+  }, []);
+
+  // Helper to get points from letter grade
+  const getPointsFromLetterGrade = useCallback((grade: string): number => {
+    return GradeLib.getPointsFromLetterGrade(grade);
+  }, []);
+
   // Calculate weighted aggregate score for a subject
   const getSubjectPredictedGrade = useCallback((subject: Subject): number | null => {
-    const midsemWeight = subject.midsemWeight ?? 20;
-    const endsemWeight = subject.endsemWeight ?? 40;
-    const remainingWeight = 100 - midsemWeight - endsemWeight;
-
-    let totalScore = 0;
-    let hasAnyGrade = false;
-
-    // Calculate midsem contribution
-    const midsem = (subject.exams || []).find((e) => e.name === 'Midsem');
-    if (midsem && midsem.marksObtained !== null && midsem.maxMarks > 0) {
-      totalScore += (midsem.marksObtained / midsem.maxMarks) * midsemWeight;
-      hasAnyGrade = true;
-    }
-
-    // Calculate endsem contribution
-    const endsem = (subject.exams || []).find((e) => e.name === 'Endsem');
-    if (endsem && endsem.marksObtained !== null && endsem.maxMarks > 0) {
-      totalScore += (endsem.marksObtained / endsem.maxMarks) * endsemWeight;
-      hasAnyGrade = true;
-    }
-
-    // Calculate assignment contribution using weighted aggregate
-    // AssignmentScore = (Total Marks Obtained / Total Max Marks) × RemainingWeight
-    const assignments = subject.assignments || [];
-    let totalObtained = 0;
-    let totalMax = 0;
-
-    assignments.forEach((a) => {
-      if (a.marksObtained !== null && a.maxMarks > 0) {
-        totalObtained += a.marksObtained;
-        totalMax += a.maxMarks;
-        hasAnyGrade = true;
-      }
-    });
-
-    if (totalMax > 0) {
-      totalScore += (totalObtained / totalMax) * remainingWeight;
-    }
-
-    if (!hasAnyGrade) return null;
-    return totalScore;
+    return GradeLib.getSubjectPredictedGrade(subject);
   }, []);
 
   const hasAtLeastOneGrade = useCallback((subject: Subject): boolean => {
-    const hasAssignmentGrade = subject.assignments.some((a) => a.marksObtained !== null);
-    const hasExamGrade = (subject.exams || []).some((e) => e.marksObtained !== null);
-    return hasAssignmentGrade || hasExamGrade;
+    return GradeLib.hasAtLeastOneGrade(subject);
   }, []);
 
   const hasEmptyMarks = useCallback((subject: Subject): boolean => {
-    // Only check for unfinished assignments, ignore exam marks (midsem/endsem)
-    const assignments = subject.assignments || [];
-    if (assignments.length === 0) return false;
-    return assignments.some((a) => a.marksObtained === null);
+    return GradeLib.hasEmptyMarks(subject);
   }, []);
 
   const semesterHasAllGrades = useCallback((semester: Semester): boolean => {
-    if (semester.subjects.length === 0) return false;
-    return semester.subjects.every((s) => hasAtLeastOneGrade(s));
-  }, [hasAtLeastOneGrade]);
+    return GradeLib.semesterHasAllGrades(semester);
+  }, []);
 
   const getGradePoint = useCallback((score: number): number => {
-    const grade = GRADE_SCALE.find((g) => score >= g.minScore && score <= g.maxScore);
-    return grade?.points ?? 0;
+    return GradeLib.getGradePoint(score);
   }, []);
 
   const getLetterGrade = useCallback((score: number): string => {
-    const grade = GRADE_SCALE.find((g) => score >= g.minScore && score <= g.maxScore);
-    return grade?.grade ?? 'F';
+    return GradeLib.getLetterGrade(score);
   }, []);
 
+  // Note: These depend on isSimulationMode/simulatedGrades state, so they must update when *that* changes.
+  // BUT they don't need to depend on `semesters` anymore because they take the semester data as an argument!
   const getSemesterGPA = useCallback(
-    (semester: Semester): number | null => {
-      if (!semesterHasAllGrades(semester)) return null;
-
-      let totalPoints = 0;
-      let totalCredits = 0;
-
-      semester.subjects.forEach((subject) => {
-        const predictedGrade = getSubjectPredictedGrade(subject);
-        if (predictedGrade !== null) {
-          const gradePoint = getGradePoint(predictedGrade);
-          totalPoints += gradePoint * subject.credits;
-          totalCredits += subject.credits;
-        }
-      });
-
-      if (totalCredits === 0) return null;
-      return totalPoints / totalCredits;
+    (semester: Semester, forceAuthentic = false): number | null => {
+      // Pass the current simulation state to the pure function
+      return GradeLib.getSemesterGPA(semester, simulatedGrades, isSimulationMode && !forceAuthentic);
     },
-    [semesterHasAllGrades, getSubjectPredictedGrade, getGradePoint]
+    [isSimulationMode, simulatedGrades]
   );
 
-  const getCGPA = useCallback((): number | null => {
-    if (semesters.length === 0) return null;
-    const allSemestersComplete = semesters.every((s) => semesterHasAllGrades(s));
-    if (!allSemestersComplete) return null;
-
-    let totalPoints = 0;
-    let totalCredits = 0;
-
-    semesters.forEach((semester) => {
-      semester.subjects.forEach((subject) => {
-        const predictedGrade = getSubjectPredictedGrade(subject);
-        if (predictedGrade !== null) {
-          const gradePoint = getGradePoint(predictedGrade);
-          totalPoints += gradePoint * subject.credits;
-          totalCredits += subject.credits;
-        }
-      });
-    });
-
-    if (totalCredits === 0) return null;
-    return totalPoints / totalCredits;
-  }, [semesters, semesterHasAllGrades, getSubjectPredictedGrade, getGradePoint]);
+  const getCGPA = useCallback((forceAuthentic = false): number | null => {
+    // This one DOES depend on `semesters` state because it aggregates *all* semesters from the hook state.
+    // However, for pure stability in children, maybe we should pass semesters as an arg? 
+    // For now, let's just use the lib function.
+    return GradeLib.getCGPA(semesters, simulatedGrades, isSimulationMode && !forceAuthentic);
+  }, [semesters, isSimulationMode, simulatedGrades]);
 
   // Semester CRUD with Optimistic Updates
   const addSemester = useCallback(async () => {
@@ -276,6 +233,7 @@ export function useSupabaseCurriculum() {
           s.id === tempId ? { ...s, id: data.id } : s
         )
       );
+      toast.success('Semester created successfully');
     } catch (error) {
       // Rollback on error
       setSemesters((prev) => prev.filter((s) => s.id !== tempId));
@@ -308,10 +266,77 @@ export function useSupabaseCurriculum() {
     }
 
     setSemesters((prev) => prev.filter((s) => s.id !== semesterId));
+    toast.success('Semester deleted');
   }, []);
 
   // Track adding state to prevent duplicates
   const [isAddingSubject, setIsAddingSubject] = useState(false);
+
+  // Bulk add subjects for AI import
+  const bulkAddSubjects = useCallback(async (semesterId: string, subjectsData: Array<{ name: string; code: string; credits: number; midsem_weight: number; endsem_weight: number }>) => {
+    if (!user || subjectsData.length === 0) return;
+
+    const subjectsWithTempIds = subjectsData.map(s => {
+      const tempId = generateTempId();
+      return {
+        ...s,
+        id: tempId,
+        semester_id: semesterId,
+        user_id: user.id,
+        assignments: [],
+        exams: [
+          { id: `${tempId}_midsem`, name: 'Midsem', weight: s.midsem_weight, marksObtained: null, maxMarks: 30 },
+          { id: `${tempId}_endsem`, name: 'Endsem', weight: s.endsem_weight, marksObtained: null, maxMarks: 50 },
+        ],
+        materials: [],
+        pdfs: [],
+      };
+    });
+
+    // Optimistic update
+    setSemesters((prev) =>
+      prev.map((sem) =>
+        sem.id === semesterId
+          ? { ...sem, subjects: [...sem.subjects, ...subjectsWithTempIds as any] }
+          : sem
+      )
+    );
+
+    try {
+      const insertData = subjectsData.map(s => ({
+        semester_id: semesterId,
+        user_id: user.id,
+        name: s.name,
+        code: s.code,
+        credits: s.credits,
+        midsem_weight: s.midsem_weight,
+        endsem_weight: s.endsem_weight
+      }));
+
+      const { data, error } = await supabase
+        .from('subjects')
+        .insert(insertData)
+        .select();
+
+      if (error) throw error;
+
+      // Replace temp IDs with real IDs
+      setSemesters((prev) =>
+        prev.map((sem) => {
+          if (sem.id !== semesterId) return sem;
+          const updatedSubjects = sem.subjects.map(subj => {
+            const match = (data as any[]).find(d => d.code === subj.code && d.name === subj.name);
+            return match ? { ...subj, id: match.id } : subj;
+          });
+          return { ...sem, subjects: updatedSubjects };
+        })
+      );
+    } catch (error) {
+      // Fetch fresh data on error to be safe
+      fetchData();
+      toast.error('Failed to import some subjects');
+    }
+  }, [user, fetchData]);
 
   // Subject CRUD with Optimistic Updates
   const addSubject = useCallback(async (semesterId: string) => {
@@ -324,12 +349,12 @@ export function useSupabaseCurriculum() {
       name: 'New Subject',
       code: 'CODE',
       credits: 3,
-      midsemWeight: 20,
-      endsemWeight: 40,
+      midsemWeight: 30,
+      endsemWeight: 50,
       assignments: [],
       exams: [
-        { id: `${tempId}_midsem`, name: 'Midsem', weight: 20, marksObtained: null, maxMarks: 30 },
-        { id: `${tempId}_endsem`, name: 'Endsem', weight: 40, marksObtained: null, maxMarks: 50 },
+        { id: `${tempId}_midsem`, name: 'Midsem', weight: 30, marksObtained: null, maxMarks: 30 },
+        { id: `${tempId}_endsem`, name: 'Endsem', weight: 50, marksObtained: null, maxMarks: 50 },
       ],
       materials: [],
       pdfs: [],
@@ -353,8 +378,8 @@ export function useSupabaseCurriculum() {
           name: 'New Subject',
           code: 'CODE',
           credits: 3,
-          midsem_weight: 20,
-          endsem_weight: 40,
+          midsem_weight: 30,
+          endsem_weight: 50,
         })
         .select()
         .single();
@@ -397,6 +422,7 @@ export function useSupabaseCurriculum() {
             : sem
         )
       );
+      toast.success('Subject created successfully');
     } catch (error) {
       // Rollback on error
       setSemesters((prev) =>
@@ -465,10 +491,11 @@ export function useSupabaseCurriculum() {
     const newAssignment: Assignment = {
       id: tempId,
       name: assignment.name,
-      weight: assignment.weight || 0,
+      weight: assignment.weight,
       marksObtained: assignment.marksObtained,
-      maxMarks: assignment.maxMarks,
-      confidence: assignment.confidence || 50,
+      maxMarks: assignment.maxMarks || 20,
+      confidence: assignment.confidence,
+      dueDate: assignment.dueDate,
     };
 
     // Optimistic update - add immediately
@@ -493,7 +520,10 @@ export function useSupabaseCurriculum() {
           user_id: user.id,
           name: assignment.name,
           marks_obtained: assignment.marksObtained,
-          max_marks: assignment.maxMarks,
+          max_marks: assignment.maxMarks || 20,
+          weight: assignment.weight,
+          confidence: assignment.confidence,
+          due_date: assignment.dueDate ? assignment.dueDate.toISOString() : null,
         })
         .select()
         .single();
@@ -545,6 +575,9 @@ export function useSupabaseCurriculum() {
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.marksObtained !== undefined) dbUpdates.marks_obtained = updates.marksObtained;
     if (updates.maxMarks !== undefined) dbUpdates.max_marks = updates.maxMarks;
+    if (updates.weight !== undefined) dbUpdates.weight = updates.weight;
+    if (updates.confidence !== undefined) dbUpdates.confidence = updates.confidence;
+    if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate ? updates.dueDate.toISOString() : null;
 
     if (Object.keys(dbUpdates).length > 0) {
       const { error } = await supabase.from('assignments').update(dbUpdates).eq('id', assignmentId);
@@ -727,6 +760,8 @@ export function useSupabaseCurriculum() {
   return {
     semesters,
     loading,
+    isSimulationMode,
+    simulatedGrades,
     getSubjectPredictedGrade,
     hasAtLeastOneGrade,
     hasEmptyMarks,
@@ -734,6 +769,9 @@ export function useSupabaseCurriculum() {
     getSemesterGPA,
     getCGPA,
     getLetterGrade,
+    toggleSimulationMode,
+    setSimulatedGrade,
+    resetSimulation,
     addSemester,
     updateSemester,
     deleteSemester,
@@ -747,5 +785,6 @@ export function useSupabaseCurriculum() {
     addMaterial,
     updateMaterial,
     deleteMaterial,
+    bulkAddSubjects,
   };
 }

@@ -7,7 +7,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProfileProvider } from "@/contexts/ProfileContext";
 import { useCustomColors } from "@/hooks/useCustomColors";
-import { GraduationCap } from "lucide-react";
+import { Logo } from "./components/ui/Logo";
+import { PreferencesProvider } from "./contexts/PreferencesContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { GlobalErrorBoundary } from "@/components/GlobalErrorBoundary";
+import { BentoGridSkeleton } from "@/components/dashboard/BentoGridSkeleton";
 
 // Lazy load pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -28,10 +32,9 @@ const queryClient = new QueryClient({
 
 // Loading fallback component
 const LoadingFallback = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="animate-pulse flex flex-col items-center gap-4">
-      <GraduationCap className="h-12 w-12 text-primary" />
-      <p className="text-muted-foreground">Loading...</p>
+  <div className="min-h-screen bg-background lg:h-screen lg:overflow-hidden p-6 lg:p-0">
+    <div className="max-w-[1400px] w-full mx-auto lg:h-full lg:pt-20">
+      <BentoGridSkeleton />
     </div>
   </div>
 );
@@ -55,15 +58,21 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <ProfileProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AppContent />
-        </TooltipProvider>
-      </ProfileProvider>
-    </AuthProvider>
+    <GlobalErrorBoundary>
+      <AuthProvider>
+        <ProfileProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <PreferencesProvider>
+              <ThemeProvider>
+                <AppContent />
+              </ThemeProvider>
+            </PreferencesProvider>
+          </TooltipProvider>
+        </ProfileProvider>
+      </AuthProvider>
+    </GlobalErrorBoundary>
   </QueryClientProvider>
 );
 
