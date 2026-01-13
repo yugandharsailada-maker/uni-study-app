@@ -60,28 +60,12 @@ export function useGemini() {
                     throw new Error("No models support generateContent");
                 }
             } catch (err: any) {
-                console.warn("⚠️ ListModels failed (likely CORS in production), trying fallback models...", err.message);
+                console.warn("⚠️ ListModels failed (likely CORS in production), using fallback model...", err.message);
 
-                // Fallback: Try common model names directly
-                const fallbackModels = ["gemini-pro", "gemini-1.5-pro", "gemini-1.0-pro"];
-
-                for (const modelName of fallbackModels) {
-                    try {
-                        console.log(`Trying fallback model: ${modelName}...`);
-                        model = genAI.getGenerativeModel({ model: modelName });
-                        // Test it with a minimal prompt
-                        await model.generateContent("hi");
-                        console.log(`✅ Fallback model works: ${modelName}`);
-                        break;
-                    } catch (testErr: any) {
-                        console.log(`❌ ${modelName} failed:`, testErr.message);
-                        continue;
-                    }
-                }
-
-                if (!model) {
-                    throw new Error("Could not discover models and all fallback models failed. Check your API key.");
-                }
+                // Fallback: Just use gemini-pro directly without testing (to avoid CORS)
+                const fallbackModel = "gemini-pro";
+                console.log(`Using fallback model: ${fallbackModel}`);
+                model = genAI.getGenerativeModel({ model: fallbackModel });
             }
 
             const prompt = `
