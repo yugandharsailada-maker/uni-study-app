@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +8,9 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInAsGuest: () => void;
   signOut: () => Promise<void>;
+  isGuestMode: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuestMode, setIsGuestMode] = useState(() => localStorage.getItem('isGuestMode') === 'true');
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -46,14 +50,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     if (error) throw error;
-};
+  };
+
+  const signInAsGuest = () => {
+    setIsGuestMode(true);
+    localStorage.setItem('isGuestMode', 'true');
+    setUser({ id: 'guest-user', email: 'guest@demo.com' } as User);
+    setLoading(false);
+  };
+
   const signOut = async () => {
+    if (isGuestMode) {
+      setIsGuestMode(false);
+      localStorage.removeItem('isGuestMode');
+      setUser(null);
+      return;
+    }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signInAsGuest, signOut, isGuestMode }}>
       {children}
     </AuthContext.Provider>
   );

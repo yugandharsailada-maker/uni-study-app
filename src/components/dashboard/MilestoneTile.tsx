@@ -15,6 +15,7 @@ interface ScoredTopic extends Topic {
 
 export function MilestoneTile() {
     const { semesters } = useSupabaseCurriculum();
+    const reduceMotion = useReducedMotion();
 
     // Process all topics across all subjects
     const milestones: ScoredTopic[] = useMemo(() => {
@@ -51,7 +52,7 @@ export function MilestoneTile() {
 
     if (milestones.length === 0) {
         return (
-            <Card className="col-span-1 md:col-span-2 h-full min-h-[160px] flex items-center justify-center p-6 border border-border dark:border-border bg-card shadow-lg rounded-3xl">
+            <Card className="col-span-1 md:col-span-2 h-full min-h-[160px] flex items-center justify-center p-6 border border-border/40 dark:border-border/10 bg-card/40 dark:bg-card/20 shadow-sm rounded-md bg-blueprint">
                 <div className="text-center space-y-2">
                     <div className="bg-muted/50 dark:bg-muted/20 p-3 rounded-full w-fit mx-auto shadow-sm">
                         <Clock className="w-6 h-6 text-slate-500" />
@@ -64,8 +65,6 @@ export function MilestoneTile() {
             </Card>
         );
     }
-
-    const reduceMotion = useReducedMotion();
 
     return (
         <motion.div

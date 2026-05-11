@@ -1,6 +1,6 @@
-import { ReactNode, memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Moon, Sun, Settings } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -29,8 +29,15 @@ export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWall
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 10);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -39,52 +46,56 @@ export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWall
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 border-b transition-all duration-500",
-        hasWallpaper ? "solid-card border-border/20" : "glass border-transparent",
-        !hasWallpaper && isScrolled ? "bg-card/95 backdrop-blur-md border-border/20 shadow-sm" : "bg-transparent border-transparent"
+        "sticky top-0 z-50 transition-all duration-500 ease-out",
+        hasWallpaper ? "border-transparent" : "border-b border-transparent",
+        !hasWallpaper && isScrolled ? "bg-background/80 backdrop-blur-xl border-border/40 shadow-sm" : "bg-transparent"
       )}
     >
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="container mx-auto px-6 h-18 flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <button
             type="button"
             aria-label="Open profile"
             onClick={onOpenProfile}
-            className="group cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="group cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary scale-smooth"
           >
             <div className="relative">
-              {/* Double Ring Effect */}
-              <div className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-primary to-primary/0 opacity-50 blur-[1px] group-hover:opacity-100 transition-opacity duration-500" />
-
               {profile.profilePic ? (
-                <Avatar className="h-10 w-10 border-2 border-background relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95">
+                <Avatar className="h-10 w-10 border border-border/50 relative z-10 transition-transform duration-300 group-hover:scale-105 group-active:scale-95 shadow-sm">
                   <AvatarImage src={profile.profilePic} alt={profile.name ?? 'Profile picture'} className="object-cover" />
                   <AvatarFallback>
-                    <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
+                    <div className="flex h-full w-full items-center justify-center bg-primary/5 text-primary">
                       <Logo className="h-5 w-5" />
                     </div>
                   </AvatarFallback>
                 </Avatar>
               ) : (
-                <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-all duration-300 relative z-10 border-2 border-transparent group-hover:border-primary/10">
+                <div className="p-2.5 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors duration-300 relative z-10">
                   <Logo className="h-5 w-5 text-primary" />
                 </div>
               )}
             </div>
           </button>
-          <div className="hidden sm:block">
-            <h1 className="text-lg font-semibold tracking-tight leading-none">Curriculum Dashboard</h1>
-            <p className="text-xs text-muted-foreground mt-0.5 font-medium hidden md:block">Academic Performance Tracker</p>
+
+          <div className="hidden sm:block opacity-0 animate-[fadeIn_0.5s_ease-out_forwards] translate-y-1">
+            <h1 className="text-base font-semibold tracking-tight text-foreground/90">Curriculum</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
           <div className={cn(
-            "flex items-center gap-3 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border transition-colors",
-            hasWallpaper ? "bg-background/95 border-primary/20" : "surface-sunken border-transparent"
+            "flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-300 touch-friendly",
+            hasWallpaper ? "bg-black/20 backdrop-blur-md border border-white/10 text-white" : "bg-secondary/50 hover:bg-secondary/80 border border-transparent"
           )}>
-            <span className="text-xs sm:text-sm font-medium text-muted-foreground hidden xs:inline">CGPA</span>
-            <div className="h-4 w-px bg-border hidden xs:block" />
+            <span className={cn(
+              "text-xs font-medium uppercase tracking-wider opacity-60",
+              hasWallpaper ? "text-white" : "text-muted-foreground"
+            )}>CGPA</span>
+
+            <div className={cn(
+              "h-3 w-px mx-1",
+              hasWallpaper ? "bg-white/20" : "bg-border"
+            )} />
 
             {reduceMotion ? (
               isRevealed ? (
@@ -92,7 +103,7 @@ export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWall
                   <span
                     aria-hidden={!showGrades}
                     className={cn(
-                      "text-base sm:text-lg font-bold text-primary px-1",
+                      "text-sm font-bold tabular-nums",
                       !showGrades && "blur-md select-none"
                     )}
                   >
@@ -100,28 +111,29 @@ export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWall
                   </span>
                   {!showGrades && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <EyeOff className="h-4 w-4 text-muted-foreground/50" aria-hidden />
+                      <EyeOff className="h-3 w-3 opacity-50" aria-hidden />
                     </div>
                   )}
                 </div>
               ) : (
-                <span className="text-xs sm:text-sm gpa-pending">Pending</span>
+                <span className="text-xs opacity-60 inset-0">Pending</span>
               )
             ) : (
               <AnimatePresence mode="wait">
                 {isRevealed ? (
                   <motion.div
                     key="cgpa"
-                    initial={{ opacity: 0, filter: 'blur(8px)', y: 4 }}
+                    initial={{ opacity: 0, filter: 'blur(4px)', y: 4 }}
                     animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-                    exit={{ opacity: 0, filter: 'blur(8px)', y: -4 }}
-                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    exit={{ opacity: 0, filter: 'blur(4px)', y: -4 }}
+                    transition={{ duration: 0.4, ease: [0.33, 1, 0.68, 1] }} // ColorOS smooth
                     className="relative flex items-center"
                   >
                     <span
                       aria-hidden={!showGrades}
                       className={cn(
-                        "text-base sm:text-lg font-bold text-primary glow-primary px-1 rounded transition-all duration-300",
+                        "text-sm font-bold tabular-nums tracking-tight",
+                        hasWallpaper ? "text-white" : "text-primary",
                         !showGrades && "blur-md select-none"
                       )}
                     >
@@ -129,7 +141,7 @@ export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWall
                     </span>
                     {!showGrades && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <EyeOff className="h-4 w-4 text-muted-foreground/50" aria-hidden />
+                        <EyeOff className="h-3.5 w-3.5 opacity-50" aria-hidden />
                       </div>
                     )}
                   </motion.div>
@@ -139,7 +151,7 @@ export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWall
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="text-xs sm:text-sm gpa-pending"
+                    className="text-xs opacity-60"
                   >
                     Pending
                   </motion.span>
@@ -148,49 +160,56 @@ export const Header = memo(function Header({ cgpa, theme, onToggleTheme, hasWall
             )}
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggleTheme}
-              className="rounded-full w-9 h-9 sm:w-10 sm:h-10 hover:bg-muted"
-            >
-              {reduceMotion ? (
-                theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />
-              ) : (
-                <AnimatePresence mode="wait">
-                  {theme === 'dark' ? (
-                    <motion.div
-                      key="sun"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Sun className="h-5 w-5" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="moon"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Moon className="h-5 w-5" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              aria-label="Toggle theme"
+              className={cn(
+                "rounded-full w-10 h-10 transition-colors duration-300",
+                hasWallpaper ? "text-white hover:bg-white/10" : "hover:bg-secondary/80"
               )}
+            >
+              <AnimatePresence mode="wait">
+                {theme === 'dark' ? (
+                  <motion.div
+                    key="sun"
+                    initial={{ rotate: -90, scale: 0.5, opacity: 0 }}
+                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                    exit={{ rotate: 90, scale: 0.5, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <Sun className="h-5 w-5" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="moon"
+                    initial={{ rotate: 90, scale: 0.5, opacity: 0 }}
+                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                    exit={{ rotate: -90, scale: 0.5, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <Moon className="h-5 w-5" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </Button>
 
             <Button
               variant="ghost"
               size="icon"
               onClick={onOpenSettings}
-              className="rounded-full w-9 h-9 sm:w-10 sm:h-10 hover:bg-muted"
+              className={cn(
+                "rounded-full w-10 h-10 transition-colors duration-300",
+                hasWallpaper ? "text-white hover:bg-white/10" : "hover:bg-secondary/80"
+              )}
             >
-              <Settings className="h-5 w-5" />
+              <div className="flex flex-col gap-[3px] items-end justify-center w-5 h-5">
+                <span className="w-5 h-0.5 bg-current rounded-full" />
+                <span className="w-3.5 h-0.5 bg-current rounded-full" />
+                <span className="w-2 h-0.5 bg-current rounded-full" />
+              </div>
             </Button>
           </div>
         </div>

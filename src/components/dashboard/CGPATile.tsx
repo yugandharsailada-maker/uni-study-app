@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { TrendingUp, Award, Sparkles } from 'lucide-react';
+import { TrendingUp, Sparkles, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { Button } from '@/components/ui/button';
@@ -18,39 +18,36 @@ export const CGPATile = memo(function CGPATile({ cgpa, isSimulationMode, onToggl
     const reduceMotion = useReducedMotion();
 
     return (
-        <div className={cn("relative group", className)}>
+        <div className={cn("relative group w-full", className)}>
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className={cn(
                     "relative overflow-hidden p-8 flex flex-col justify-between transition-all duration-300 h-full",
-                    "bg-gradient-to-br from-violet-500/5 via-fuchsia-500/5 to-orange-500/5 dark:from-violet-500/10 dark:via-fuchsia-500/10 dark:to-orange-500/10", // RICHER GRADIENT
-                    "border border-slate-200 dark:border-border", // Border definition
-                    "shadow-[0_10px_40px_rgba(138,180,248,0.12)] dark:shadow-lg", // Soft blue glow
-                    "rounded-[2.5rem]",
-                    "before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/40 before:to-transparent before:opacity-50 dark:before:opacity-0 pointer-events-none",
-                    isSimulationMode && "bg-indigo-50/80 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-500/30"
+                    // Refined gradients - cleaner, deeper
+                    "bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-blue-50/30 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-blue-950/10",
+                    "border border-white/50 dark:border-white/5",
+                    "rounded-lg shadow-xl", // 40px hierarchy for Hero Tile
+                    isSimulationMode && "ring-2 ring-indigo-500/20 bg-indigo-50/80 dark:bg-indigo-950/20"
                 )}
-                {...(reduceMotion ? {} : { whileHover: { y: -4, boxShadow: "0 20px 40px -10px rgba(0,0,0,0.08)" } })}
+                {...(reduceMotion ? {} : { whileHover: { y: -2, boxShadow: "0 15px 30px -5px rgba(0,0,0,0.05)" } })}
             >
-                {/* Background decoration */}
-                <div className="absolute top-0 right-0 p-6 opacity-[0.03] dark:opacity-5 pointer-events-none">
-                    <Award className="w-32 h-32 -rotate-12 translate-x-8 -translate-y-8" />
+                {/* Simplified Background Decoration */}
+                <div className="absolute -top-4 -right-4 opacity-[0.03] dark:opacity-[0.02] pointer-events-none rotate-12 scale-150 transform-gpu">
+                    <Award className="w-48 h-48" />
                 </div>
 
-                <div className="flex justify-between items-center z-10 relative">
-                    <div>
-                        <h3 className="text-sm font-bold text-muted-foreground/80 uppercase tracking-widest flex items-center gap-2">
-                            {isSimulationMode ? (
-                                <span className="text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" /> Predicted CGPA
-                                </span>
-                            ) : (
-                                "Overall CGPA"
-                            )}
-                        </h3>
-                        <p className="text-xs font-medium text-muted-foreground/50 mt-1">
-                            {isSimulationMode ? "What-If Scenario Active" : "Live Performance"}
+                <div className="flex justify-between items-start z-10 relative">
+                    <div className="space-y-1">
+                        <div className={cn(
+                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase",
+                            isSimulationMode ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300" : "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-foreground"
+                        )}>
+                            {isSimulationMode && <Sparkles className="w-3 h-3" />}
+                            {isSimulationMode ? "Predicted" : "Overall CGPA"}
+                        </div>
+                        <p className={cn("text-xs font-medium pl-1", isSimulationMode ? "text-indigo-600/70" : "text-muted-foreground/60")}>
+                            {isSimulationMode ? "Simulation Active" : "Academic Performance"}
                         </p>
                     </div>
 
@@ -58,8 +55,8 @@ export const CGPATile = memo(function CGPATile({ cgpa, isSimulationMode, onToggl
                         size="icon"
                         variant="ghost"
                         className={cn(
-                            "rounded-full h-10 w-10 hover:bg-black/5 dark:hover:bg-white/10 transition-colors -mr-2",
-                            isSimulationMode ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"
+                            "rounded-full h-10 w-10 transition-all duration-300 hover:scale-110 active:scale-95",
+                            isSimulationMode ? "text-indigo-600 bg-indigo-100/50 hover:bg-indigo-100" : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/10"
                         )}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -70,39 +67,53 @@ export const CGPATile = memo(function CGPATile({ cgpa, isSimulationMode, onToggl
                     </Button>
                 </div>
 
-                <div className="z-10 mt-4">
+                <div className="z-10 mt-6 relative">
                     {isRevealed ? (
-                        <div className="flex flex-col gap-1">
-                            <span className={cn(
-                                "text-5xl sm:text-6xl md:text-7xl font-extrabold bg-gradient-to-r bg-clip-text text-transparent tracking-tighter transition-all duration-300",
-                                isSimulationMode ? "from-indigo-600 to-purple-600 scale-105 origin-left" : "from-slate-900 to-slate-700 dark:from-white dark:to-slate-300",
-                                !showGrades && !isSimulationMode && "blur-xl select-none"
-                            )}>
-                                {cgpa.toFixed(2)}
-                            </span>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-muted-foreground">
-                                    {cgpa >= 9 ? "Outstanding! 🌟" : cgpa >= 8 ? "Excellent work! 🎯" : cgpa >= 7 ? "Great progress! 📈" : cgpa >= 6 ? "You're doing well! 💪" : "Keep pushing forward! 🚀"}
+                        <div className="flex flex-col gap-2">
+                            <div className="relative inline-block">
+                                <span className={cn(
+                                    "text-6xl sm:text-7xl font-[800] tracking-tighter transition-all duration-300 tabular-nums leading-none",
+                                    // Gradient Text
+                                    "bg-clip-text text-transparent bg-gradient-to-r",
+                                    isSimulationMode
+                                        ? "from-indigo-500 to-purple-600 scale-[1.02] origin-left filter drop-shadow-sm"
+                                        : "from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-200 dark:to-slate-400",
+                                    !showGrades && !isSimulationMode && "blur-xl select-none grayscale opacity-50"
+                                )}>
+                                    {cgpa.toFixed(2)}
                                 </span>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-2">
+                                <span className="text-sm font-medium text-muted-foreground/80 flex items-center gap-2">
+                                    <span className={cn("w-1.5 h-1.5 rounded-full", cgpa >= 8 ? "bg-emerald-500" : "bg-amber-500")} />
+                                    {cgpa >= 9 ? "Outstanding" : cgpa >= 8 ? "Excellent" : cgpa >= 7 ? "Good" : "Keep Improving"}
+                                </span>
+
                                 {isSimulationMode && (
-                                    <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={(e) => { e.stopPropagation(); onToggleSimulation(); }}>
-                                        Exit Simulation
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-[10px] px-3 rounded-full border-indigo-200 text-indigo-700 bg-white hover:bg-indigo-50 transition-colors"
+                                        onClick={(e) => { e.stopPropagation(); onToggleSimulation(); }}
+                                    >
+                                        Exit Mode
                                     </Button>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-2">
-                            <div className="h-10 w-24 bg-muted/50 rounded animate-pulse" />
-                            <span className="text-sm text-muted-foreground italic">Add grades to calculate</span>
+                        <div className="flex flex-col gap-3 py-2">
+                            <div className="h-12 w-32 bg-muted/30 rounded-lg animate-pulse" />
+                            <span className="text-sm text-muted-foreground italic pl-1">Add grades to see performance</span>
                         </div>
                     )}
                 </div>
 
-                {/* Progress Glow (Stage 4 Hook) */}
+                {/* Simulation Progress Line with Glow */}
                 <div className={cn(
-                    "absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent transition-opacity duration-300",
-                    isSimulationMode ? "opacity-100 animate-pulse via-indigo-500/50" : "opacity-0"
+                    "absolute inset-x-0 bottom-0 h-[3px] transition-opacity duration-300",
+                    isSimulationMode ? "opacity-100 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 animate-pulse" : "opacity-0"
                 )} />
             </motion.div>
         </div>

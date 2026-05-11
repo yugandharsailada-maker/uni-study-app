@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Wand2, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { Wand2, Loader2, Sparkles, CheckCircle2, History } from "lucide-react";
 import { useGemini, ExtractedSubject } from "@/hooks/useGemini";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,8 +22,14 @@ interface MagicImportModalProps {
 
 export function MagicImportModal({ isOpen, onClose, onImport }: MagicImportModalProps) {
     const [text, setText] = useState("");
-    const { extractSyllabusData, isExtracting } = useGemini();
+    const { extractSyllabusData, isExtracting, fetchExtractionHistory, history } = useGemini();
     const [extractedPreview, setExtractedPreview] = useState<ExtractedSubject[] | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchExtractionHistory();
+        }
+    }, [isOpen, fetchExtractionHistory]);
 
     const handleExtract = async () => {
         if (!text.trim()) {
@@ -66,17 +72,49 @@ export function MagicImportModal({ isOpen, onClose, onImport }: MagicImportModal
 
                 <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
                     {!extractedPreview ? (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">Syllabus Text</label>
-                            <Textarea
-                                placeholder="Paste subject list, syllabus content, or course descriptions here..."
-                                className="min-h-[300px] resize-none focus-visible:ring-primary/20 transition-all border-border/60"
-                                value={text}
-                                onChange={(e) => setText(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground italic">
-                                Tip: You can copy-paste from a PDF or website.
-                            </p>
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">Syllabus Text</label>
+                                <Textarea
+                                    placeholder="Paste subject list, syllabus content, or course descriptions here..."
+                                    className="min-h-[200px] resize-none focus-visible:ring-primary/20 transition-all border-border/60"
+                                    value={text}
+                                    onChange={(e) => setText(e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground italic">
+                                    Tip: You can copy-paste from a PDF or website.
+                                </p>
+                            </div>
+
+                            {history.length > 0 && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                        <History className="w-4 h-4" />
+                                        Recent Imports
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {history.slice(0, 3).map((item) => (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => setExtractedPreview(item.subjects)}
+                                                className="w-full text-left p-3 rounded-xl border bg-muted/30 hover:bg-muted/50 hover:border-primary/30 transition-all group"
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-medium truncate max-w-[300px]">
+                                                        {item.subjects.map(s => s.name).join(", ")}
+                                                    </span>
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        {new Date(item.created_at).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    {item.subjects.length} subjects found
+                                                </p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <motion.div

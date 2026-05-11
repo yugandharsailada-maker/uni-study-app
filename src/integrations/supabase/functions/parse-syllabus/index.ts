@@ -1,8 +1,8 @@
-// @ts-ignore: Deno URL import
+// @ts-expect-error: Deno URL import
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Fix for IDE errors when Deno is not correctly detected
-declare const Deno: any;
+declare const Deno: { env: { get: (key: string) => string | undefined } };
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -104,8 +104,9 @@ serve(async (req: Request) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
 
-    } catch (error: any) {
-        return new Response(JSON.stringify({ error: error.message }), {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return new Response(JSON.stringify({ error: message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 400,
         });

@@ -33,42 +33,51 @@ export function getSubjectPredictedGrade(subject: Subject): number | null {
     const endsemWeight = subject.endsemWeight ?? 50;
     const remainingWeight = 100 - midsemWeight - endsemWeight;
 
-    let totalScore = 0;
-    let hasAnyGrade = false;
+    let totalScorePoints = 0; // Accumulated weighted points
+    let evaluatedWeight = 0; // Total weight of items graded so far
 
     // 1. Midsem contribution
     const midsem = (subject.exams || []).find((e) => e.name === 'Midsem');
     if (midsem && midsem.marksObtained !== null && midsem.maxMarks > 0) {
-        totalScore += (midsem.marksObtained / midsem.maxMarks) * midsemWeight;
-        hasAnyGrade = true;
+        totalScorePoints += (midsem.marksObtained / midsem.maxMarks) * midsemWeight;
+        evaluatedWeight += midsemWeight;
     }
 
     // 2. Endsem contribution
     const endsem = (subject.exams || []).find((e) => e.name === 'Endsem');
     if (endsem && endsem.marksObtained !== null && endsem.maxMarks > 0) {
-        totalScore += (endsem.marksObtained / endsem.maxMarks) * (subject.endsemWeight ?? 50);
-        hasAnyGrade = true;
+        totalScorePoints += (endsem.marksObtained / endsem.maxMarks) * (subject.endsemWeight ?? 50);
+        evaluatedWeight += (subject.endsemWeight ?? 50);
     }
 
     // 3. Assignments contribution
     let totalObtained = 0;
     let totalMax = 0;
+    let hasGradedAssignment = false;
     const assignments = subject.assignments || [];
 
     assignments.forEach((a) => {
         if (a.marksObtained !== null && a.maxMarks > 0) {
             totalObtained += a.marksObtained;
             totalMax += a.maxMarks;
-            hasAnyGrade = true;
+            hasGradedAssignment = true;
         }
     });
 
-    if (totalMax > 0) {
-        totalScore += (totalObtained / totalMax) * remainingWeight;
+    if (totalMax > 0 && hasGradedAssignment) {
+        // We only add assignment contribution based on assignments graded SO FAR. 
+        // This distributes remainingWeight linearly based on graded maxMarks vs totalMax. 
+        // But simpler: just add the whole assignment weight if we have any graded.
+        // Usually assignments are treated as a single bucket here.
+        totalScorePoints += (totalObtained / totalMax) * remainingWeight;
+        evaluatedWeight += remainingWeight;
     }
 
-    if (!hasAnyGrade) return null;
-    return totalScore;
+    if (evaluatedWeight === 0) return null;
+
+    // Normalize against evaluated weight out of 100
+    // Example: 25/30 midsem = 83.33%. (25) / (30) * 100 = 83.33%
+    return (totalScorePoints / evaluatedWeight) * 100;
 }
 
 /**

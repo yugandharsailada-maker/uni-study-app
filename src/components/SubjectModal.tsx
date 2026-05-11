@@ -100,23 +100,21 @@ export function SubjectModal({
   useEffect(() => {
     if (!subject) return;
     setNewMaxMarksDraft(String(newAssignment.maxMarks ?? DEFAULT_ASSIGNMENT.maxMarks));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subject?.id]);
+  }, [subject, newAssignment.maxMarks]);
 
-  if (!subject) return null;
-
-  const midsemWeight = subject.midsemWeight ?? 30;
-  const endsemWeight = subject.endsemWeight ?? 50;
+  const midsemWeight = subject?.midsemWeight ?? 30;
+  const endsemWeight = subject?.endsemWeight ?? 50;
 
   // Exams are stored in DB, but keep a safe UI fallback.
   const exams: Exam[] = useMemo(() => {
+    if (!subject) return [];
     const existing = subject.exams || [];
     if (existing.length > 0) return existing;
     return [
       { id: "midsem", name: "Midsem", weight: midsemWeight, marksObtained: null, maxMarks: 30 },
       { id: "endsem", name: "Endsem", weight: endsemWeight, marksObtained: null, maxMarks: 50 },
     ];
-  }, [subject.exams, midsemWeight, endsemWeight]);
+  }, [subject, endsemWeight, midsemWeight]);
 
   // Grade Target Calculator Logic
   const targetCalculation = useMemo(() => {
@@ -168,6 +166,8 @@ export function SubjectModal({
       };
     });
   }, [subject]);
+
+  if (!subject) return null;
 
   const handleMagicImport = async () => {
     try {
@@ -241,8 +241,8 @@ export function SubjectModal({
       });
       */
 
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name !== 'AbortError') {
         console.error("Import failed:", error);
         toast.error("Import Failed", { description: error.message });
       }

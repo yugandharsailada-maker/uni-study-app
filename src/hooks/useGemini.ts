@@ -1,8 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useState } from "react";
 import { toast } from "sonner";
-
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface ExtractedSubject {
     name: string;
@@ -15,114 +14,115 @@ export interface ExtractedSubject {
     };
 }
 
-export function useGemini() {
-    const [isExtracting, setIsExtracting] = useState(false);
+export interface ExtractionRecord {
+    id: string;
+    user_id: string;
+    content: string;
+    subjects: ExtractedSubject[];
+    created_at: string;
+}
 
-    const extractSyllabusData = async (text: string): Promise<ExtractedSubject[] | null> => {
-        if (!API_KEY) {
-            toast.error("Gemini API Key missing. Please set VITE_GEMINI_API_KEY in .env.local");
+export function useGemini() {
+    const { isGuestMode } = useAuth();
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [history, setHistory] = useState<ExtractionRecord[]>([]);
+
+    const fetchExtractionHistory = async (): Promise<ExtractionRecord[] | null> => {
+        if (isGuestMode) return [];
+        try {
+            const { data, error } = await supabase.rpc('get_my_ai_extracts');
+
+            if (error) {
+                console.error("DEBUG: Error fetching extraction history:", error);
+                return null;
+            }
+
+            setHistory(data as unknown as ExtractionRecord[]);
+            return data as unknown as ExtractionRecord[];
+        } catch (error) {
+            console.error("DEBUG: Unexpected error in fetchExtractionHistory:", error);
             return null;
         }
+    };
 
+    const extractSyllabusData = async (text: string): Promise<ExtractedSubject[] | null> => {
         setIsExtracting(true);
+        if (isGuestMode) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            const mockData: ExtractedSubject[] = [
+                { name: 'Data Structures', code: 'CS101', credits: 4 },
+                { name: 'Algorithms', code: 'CS102', credits: 3 },
+                { name: 'Database Systems', code: 'CS201', credits: 4 }
+            ];
+            toast.success('Extracted 3 subjects (Guest Mode Mock)');
+            setIsExtracting(false);
+            return mockData;
+        }
         try {
-            const genAI = new GoogleGenerativeAI(API_KEY);
+            console.log("DEBUG: Sending extraction request for text length:", text.length);
 
-            // Use the ListModels API to discover available models
-            console.log("🔍 Discovering available models...");
+            const { data, error } = await supabase.functions.invoke('extract-subjects', {
+                body: { text: text.trim() }
+            });
 
-            let model = null;
+            if (error) {
+                console.error("DEBUG: Supabase Invoke Error Object:", error);
 
-            try {
-                // Fetch the list of available models
-                const modelsResponse = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`
-                );
+                let errorMsg = error.message || 'The extraction service encountered an error.';
 
-                if (!modelsResponse.ok) {
-                    throw new Error(`Failed to list models: ${modelsResponse.statusText}`);
+                // Inspecting context for deeper error details if available
+                const err = error as unknown as { context?: { json: () => Promise<{ error?: string; message?: string }> } };
+                if (err.context && typeof err.context.json === 'function') {
+                    try {
+                        const body = await err.context.json();
+                        console.error("DEBUG: Error Body from Edge Function:", body);
+                        errorMsg = body.error || body.message || errorMsg;
+                    } catch (e) {
+                        console.warn("DEBUG: Could not parse error body", e);
+                    }
                 }
 
-                const modelsData = await modelsResponse.json();
-                console.log("Available models:", modelsData.models?.map((m: any) => m.name) || []);
-
-                // Find a model that supports generateContent
-                const compatibleModel = modelsData.models?.find((m: any) =>
-                    m.supportedGenerationMethods?.includes('generateContent')
-                );
-
-                if (compatibleModel) {
-                    // Extract just the model name (e.g., "gemini-pro" from "models/gemini-pro")
-                    const modelName = compatibleModel.name.replace('models/', '');
-                    console.log(`✅ Using model: ${modelName}`);
-                    model = genAI.getGenerativeModel({ model: modelName });
-                } else {
-                    throw new Error("No models support generateContent");
-                }
-            } catch (err: any) {
-                console.warn("⚠️ ListModels failed (likely CORS in production), using fallback model...", err.message);
-
-                // Fallback: Just use gemini-pro directly without testing (to avoid CORS)
-                const fallbackModel = "gemini-pro";
-                console.log(`Using fallback model: ${fallbackModel}`);
-                model = genAI.getGenerativeModel({ model: fallbackModel });
+                throw new Error(errorMsg);
             }
 
-            const prompt = `
-        You are an expert academic assistant. Extract a list of subjects from the following syllabus text.
-        For each subject, identify:
-        - The subject name (full name)
-        - The subject code (e.g., CS101, MATH202) - if not present, generate one from the subject name
-        - The number of credits (as a number) - if not present, default to 3
-
-        Return the data strictly as a JSON array of objects with this structure:
-        [
-          {
-            "name": "string",
-            "code": "string",
-            "credits": number
-          }
-        ]
-
-        IMPORTANT: Return ONLY the JSON array, nothing else. No explanations, no markdown formatting.
-
-        Syllabus Text:
-        ${text}
-      `;
-
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const rawText = response.text();
-
-            // Clean up the response - remove markdown code blocks and extra whitespace
-            let jsonText = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-
-            // Try to find JSON array if it's embedded in other text
-            const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                jsonText = jsonMatch[0];
+            if (!data || data.error) {
+                throw new Error(data?.error || 'No subjects returned from Edge Function');
             }
 
-            console.log("Cleaned JSON:", jsonText); // Debug log
+            if (!data.subjects) {
+                throw new Error('Malformed response: "subjects" field missing.');
+            }
 
-            const extractedData = JSON.parse(jsonText) as ExtractedSubject[];
+            const extractedData = data.subjects as ExtractedSubject[];
 
             if (!Array.isArray(extractedData) || extractedData.length === 0) {
-                throw new Error("No subjects found in the text");
+                throw new Error("The AI couldn't find any subjects in that text. Try pasting it as plain text.");
             }
 
+            console.log(`✅ Extracted ${extractedData.length} subjects using model: ${data.modelUsed || 'unknown'}`);
             toast.success(`Successfully extracted ${extractedData.length} subjects!`);
-            return extractedData;
-        } catch (error: any) {
-            console.error("Gemini Extraction Error:", error);
-            const errorMessage = error?.message || "Unknown error";
 
-            if (errorMessage.includes("API key") || errorMessage.includes("API_KEY")) {
-                toast.error("Invalid API Key", { description: "Please check your Gemini API key in .env.local" });
-            } else if (errorMessage.includes("JSON")) {
-                toast.error("Failed to parse AI response", { description: "The AI returned invalid data. Try rephrasing your text." });
-            } else if (errorMessage.includes("No compatible")) {
-                toast.error("No Compatible Model Found", { description: "Your API key doesn't have access to any supported Gemini models. Try generating a new key." });
+            // Refresh history after a successful extraction
+            // Note: This assumes the edge function or a DB trigger handles the save
+            fetchExtractionHistory();
+
+            return extractedData;
+        } catch (error: unknown) {
+            console.error("DEBUG: Caught Extraction Error:", error);
+
+            const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+
+            // Log project for verification
+            console.log("DEBUG: Current Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
+
+            if (errorMessage.includes("API key") || errorMessage.includes("API_KEY") || errorMessage.includes("configuration")) {
+                toast.error("AI Configuration Error", {
+                    description: "Check your Gemini API key in Supabase Dashboard secrets."
+                });
+            } else if (errorMessage.includes("JSON") || errorMessage.includes("valid subject data")) {
+                toast.error("Failed to parse subjects", {
+                    description: "The AI returned invalid data. Try pasting it as plain text."
+                });
             } else {
                 toast.error("Extraction Failed", { description: errorMessage });
             }
@@ -135,6 +135,8 @@ export function useGemini() {
 
     return {
         extractSyllabusData,
+        fetchExtractionHistory,
         isExtracting,
+        history,
     };
 }

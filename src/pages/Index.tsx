@@ -1,9 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Logo } from '@/components/ui/Logo';
-import { Header } from '@/components/Header';
-import { SubjectModal } from '@/components/SubjectModal';
 import { DeleteSemesterDialog } from '@/components/DeleteSemesterDialog';
 import { SettingsSidebar } from '@/components/SettingsSidebar';
 import { ProfileSidebar } from '@/components/ProfileSidebar';
@@ -16,6 +12,9 @@ import { BentoGrid } from '@/components/dashboard/BentoGrid';
 import { SimulationModal } from '@/components/simulation/SimulationModal';
 import { BentoGridSkeleton } from '@/components/dashboard/BentoGridSkeleton';
 import { CommandPalette } from '@/components/CommandPalette';
+import { Header } from '@/components/Header';
+import { SubjectModal } from '@/components/SubjectModal';
+import { toast } from 'sonner';
 
 const Index = () => {
   const { theme, toggleTheme } = useTheme();
@@ -114,8 +113,8 @@ const Index = () => {
   // The Header component normally shows CGPA too. Let's force Authentic for the Header for now to differentiate,
   // or use the main one. Let's make the Header show authentic to keep it "safe".
   // Actually, standard behavior: Header is "Official", Dashboard Tile is "Interactive".
-  const authenticCGPA = useMemo(() => getCGPA(true), [semesters, getCGPA, isSimulationMode]);
-  const displayCGPA = useMemo(() => getCGPA(false), [semesters, getCGPA, isSimulationMode, simulatedGrades]);
+  const authenticCGPA = useMemo(() => getCGPA(true), [getCGPA]);
+  const displayCGPA = useMemo(() => getCGPA(false), [getCGPA]);
 
   const handleDeleteSemester = useCallback((semesterId: string, semesterName: string) => {
     setDeleteDialog({ isOpen: true, semesterId, semesterName });
@@ -203,6 +202,7 @@ const Index = () => {
               cgpa={displayCGPA} // Shows Simulated if mode is ON
               wallpaper={wallpaper}
               isSimulationMode={isSimulationMode}
+              simulatedGrades={simulatedGrades}
               onToggleSimulation={() => setSimulationModalOpen(true)}
               getSemesterGPA={getSemesterGPA}
               semesterHasAllGrades={semesterHasAllGrades}

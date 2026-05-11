@@ -9,7 +9,7 @@ export function useConfetti() {
             zIndex: 9999,
         };
 
-        function fire(particleRatio: number, opts: any) {
+        function fire(particleRatio: number, opts: confetti.Options) {
             confetti({
                 ...defaults,
                 ...opts,

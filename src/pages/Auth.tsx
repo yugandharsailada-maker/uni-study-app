@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export default function Auth() {
-  const { user, loading, signInWithGoogle } = useAuth();
+  const { user, loading, signInWithGoogle, signInAsGuest } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,8 +19,9 @@ export default function Auth() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      toast.error(message);
     }
   };
 
@@ -58,7 +59,7 @@ export default function Auth() {
           <Button
             onClick={handleGoogleSignIn}
             variant="outline"
-            className="w-full h-12 gap-3 text-base"
+            className="w-full h-12 gap-3 text-base rounded-xl"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -80,6 +81,17 @@ export default function Auth() {
             </svg>
             Sign in with Google
           </Button>
+
+          {/* Developer Demo Access */}
+          <div className="mt-4 pt-4 border-t border-dashed">
+             <Button
+                variant="ghost"
+                className="w-full text-xs text-muted-foreground hover:text-primary transition-colors"
+                onClick={signInAsGuest}
+             >
+                Enter Developer Demo Mode
+             </Button>
+          </div>
 
           <p className="text-xs text-center text-muted-foreground mt-6">
             By signing in, you agree to sync your academic data securely.

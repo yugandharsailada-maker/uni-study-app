@@ -1,8 +1,7 @@
-import { useState, memo, useMemo, useCallback } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Plus, Trash2, MoreHorizontal, Sparkles, Wand2 } from 'lucide-react';
+import { TrendingUp, Plus, Trash2, Sparkles } from 'lucide-react';
 import { MagicImportModal } from "./MagicImportModal";
-import { ExtractedSubject } from "@/hooks/useGemini";
 import { Semester, Subject } from '@/types/curriculum';
 import { SubjectCard } from './SubjectCard';
 import { InlineEdit } from './InlineEdit';
@@ -29,6 +28,8 @@ interface SemesterBlockProps {
   onBulkAddSubjects: (subjects: Array<{ name: string; code: string; credits: number; midsem_weight: number; endsem_weight: number }>) => void;
   onUpdateSubject: (semesterId: string, subjectId: string, updates: Partial<Subject>) => void;
   onDeleteSubject: (semesterId: string, subjectId: string) => void;
+  isSimulationMode?: boolean;
+  simulatedGrades?: Record<string, string>;
 }
 
 const EMOJI_OPTIONS = ['📚', '🎓', '📖', '✨', '🔬', '🎨', '💻', '📐', '🧪', '🌟', '🏆', '📝', '🧠', '⚙️', '📊'];
@@ -46,6 +47,8 @@ export const SemesterBlock = memo(function SemesterBlock({
   onBulkAddSubjects,
   onUpdateSubject,
   onDeleteSubject,
+  isSimulationMode = false,
+  simulatedGrades = {},
 }: SemesterBlockProps) {
   const [isMagicImportOpen, setIsMagicImportOpen] = useState(false);
   const { showGrades } = usePreferences();
@@ -64,26 +67,27 @@ export const SemesterBlock = memo(function SemesterBlock({
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08,
+        staggerChildren: 0.04, // Faster stagger
       },
     },
   };
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-10 relative group/semester"
+      transition={{ duration: 0.4, ease: [0.33, 1, 0.68, 1] }}
+      className="mb-8 relative group/semester"
     >
-      {/* Decorative left line */}
-      <div className="absolute -left-6 top-0 bottom-0 w-px bg-gradient-to-b from-primary/30 to-transparent hidden lg:block opacity-30 group-hover/semester:opacity-60 transition-opacity" />
+      {/* Decorative left line - simplified */}
+      <div className="absolute -left-5 top-2 bottom-2 w-px bg-primary/10 hidden lg:block" />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 px-1">
-        <div className="flex items-center gap-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 px-1">
+        <div className="flex items-center gap-4">
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="h-16 w-16 flex items-center justify-center rounded-2xl bg-gradient-to-br from-background to-secondary/50 shadow-sm border border-border/50 hover:scale-105 hover:shadow-md transition-all duration-300 text-3xl cursor-pointer ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="h-14 w-14 flex items-center justify-center rounded-2xl bg-white dark:bg-card shadow-sm border border-border/40 hover:scale-105 hover:shadow-md transition-all duration-300 text-2xl cursor-pointer ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 scale-smooth"
                 title="Change Icon"
               >
                 {semester.emoji || '📚'}
@@ -109,33 +113,34 @@ export const SemesterBlock = memo(function SemesterBlock({
             </PopoverContent>
           </Popover>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <InlineEdit
                 value={semester.name}
                 onSave={(name) => onUpdateSemester({ name })}
                 className="hover:bg-primary/5 rounded px-2 -ml-2 transition-colors cursor-text"
+                inputClassName="text-xl font-bold"
               />
             </h2>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/10">
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground/70">
                 {semester.subjects.length} Subject{semester.subjects.length !== 1 ? 's' : ''}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 sm:pl-0">
+        <div className="flex items-center gap-2 sm:pl-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsMagicImportOpen(true)}
-            className="h-10 w-10 text-primary/60 hover:text-primary hover:bg-primary/10 rounded-full transition-colors relative group"
+            className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all relative group"
             title="Magic Syllabus Import"
           >
-            <Sparkles className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <Sparkles className="h-4 w-4" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
             </span>
           </Button>
 
@@ -143,35 +148,35 @@ export const SemesterBlock = memo(function SemesterBlock({
             variant="ghost"
             size="icon"
             onClick={onDeleteSemester}
-            className="h-10 w-10 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
+            className="h-9 w-9 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-full transition-all"
             title="Delete Semester"
           >
-            <Trash2 className="h-5 w-5" />
+            <Trash2 className="h-4 w-4" />
           </Button>
 
-          <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-card/90 border shadow-sm ring-1 ring-border/40">
-            <TrendingUp className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">GPA</span>
-            <div className="h-4 w-px bg-border/60 my-auto" />
+          <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-white dark:bg-card border border-border/50 shadow-sm ml-2">
+            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium text-muted-foreground uppercase opacity-70">GPA</span>
+            <div className="h-3.5 w-px bg-border my-auto" />
             <AnimatePresence mode="wait">
               {semesterGPA !== null ? (
                 <motion.div
                   key="gpa"
-                  initial={{ opacity: 0, filter: 'blur(8px)', x: 10 }}
+                  initial={{ opacity: 0, filter: 'blur(4px)', x: 5 }}
                   animate={{ opacity: 1, filter: 'blur(0px)', x: 0 }}
-                  exit={{ opacity: 0, filter: 'blur(8px)', x: -10 }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  exit={{ opacity: 0, filter: 'blur(4px)', x: -5 }}
+                  transition={{ duration: 0.3, ease: [0.33, 1, 0.68, 1] }}
                   className="relative flex items-center"
                 >
                   <span className={cn(
-                    "text-lg font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent transition-all duration-300",
-                    !showGrades && "blur-md select-none"
+                    "text-sm font-bold text-foreground transition-all duration-300 tabular-nums",
+                    !showGrades && "blur-sm select-none"
                   )}>
                     {semesterGPA.toFixed(2)}
                   </span>
                   {!showGrades && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <EyeOff className="h-4 w-4 text-muted-foreground/40" />
+                      <EyeOff className="h-3 w-3 text-muted-foreground/40" />
                     </div>
                   )}
                 </motion.div>
@@ -181,7 +186,7 @@ export const SemesterBlock = memo(function SemesterBlock({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-sm gpa-pending px-1 font-medium"
+                  className="text-xs gpa-pending px-1"
                 >
                   ---
                 </motion.span>
@@ -195,7 +200,7 @@ export const SemesterBlock = memo(function SemesterBlock({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
       >
         {semester.subjects.map((subject) => (
           <SubjectCard
@@ -207,32 +212,30 @@ export const SemesterBlock = memo(function SemesterBlock({
             onClick={() => onSubjectClick(subject)}
             onUpdateSubject={handleUpdateSubject}
             onDeleteSubject={handleDeleteSubject}
+            isSimulationMode={isSimulationMode}
+            simulatedGrade={simulatedGrades[subject.id]}
           />
         ))}
 
-        {/* Add Subject Card - Polished with Blueprint Pattern */}
+        {/* Add Subject Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           whileHover={{
-            y: -4,
-            scale: 1.01,
+            y: -2,
+            scale: 1.005,
           }}
           whileTap={{ scale: 0.98 }}
           transition={{ duration: 0.2 }}
           onClick={onAddSubject}
-          className="group relative h-[220px] rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center overflow-hidden bg-blueprint"
+          className="group relative h-[180px] rounded-3xl border border-dashed border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/30 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center overflow-hidden bg-blueprint gpu-accelerated adaptive-motion"
         >
-          {/* Subtle animated gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-          <div className="relative z-10 p-5 rounded-full bg-background shadow-sm mb-4 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 ring-4 ring-background/50">
-            <Plus className="h-7 w-7 transition-colors" />
+          <div className="relative z-10 p-4 rounded-full bg-background/50 shadow-sm mb-3 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+            <Plus className="h-6 w-6 transition-colors" />
           </div>
-          <span className="relative z-10 text-base font-semibold text-primary/70 group-hover:text-primary transition-colors">
+          <span className="relative z-10 text-sm font-semibold text-primary/70 group-hover:text-primary transition-colors">
             Add Subject
           </span>
-          <span className="relative z-10 text-xs text-muted-foreground/60 mt-1">Tap to create new</span>
         </motion.div>
       </motion.div>
 

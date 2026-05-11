@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Semester, Subject } from '@/types/curriculum';
 import { SemesterBlock } from '@/components/SemesterBlock';
 import { CGPATile } from './CGPATile';
-import { DeadlineTile } from './DeadlineTile';
 import { MilestoneTile } from './MilestoneTile';
 
 interface BentoGridProps {
@@ -13,6 +12,7 @@ interface BentoGridProps {
     cgpa: number | null;
     wallpaper: string | null;
     isSimulationMode: boolean;
+    simulatedGrades: Record<string, string>;
     onToggleSimulation: () => void;
 
     // Logic Props
@@ -37,15 +37,13 @@ interface BentoGridProps {
 
 export const BentoGrid = memo(function BentoGrid({
     semesters,
-
     cgpa,
     wallpaper,
     isSimulationMode,
+    simulatedGrades,
     onToggleSimulation,
-    // Logic props needed for children
     getSemesterGPA,
     semesterHasAllGrades,
-
     onAddSemester,
     onUpdateSemester,
     onDeleteSemester,
@@ -54,15 +52,15 @@ export const BentoGrid = memo(function BentoGrid({
     onUpdateSubject,
     onDeleteSubject,
     onSubjectClick,
-    onAddPDF // Assuming onAddPDF might be needed or was missing in props, added for consistency if needed or kept if not
+    onAddPDF
 }: BentoGridProps) {
 
     // Empty State: Onboarding Tile
     if (semesters.length === 0) {
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-7xl mx-auto pt-4">
                 {/* Welcome/CGPA Tile - Wide on Empty State */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-5">
                     <CGPATile
                         cgpa={cgpa}
                         className="min-h-[220px]"
@@ -71,63 +69,77 @@ export const BentoGrid = memo(function BentoGrid({
                     />
 
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="glass rounded-3xl p-8 flex flex-col items-center justify-center text-center min-h-[300px] border-dashed border-2 border-primary/20"
+                        transition={{ delay: 0.15, ease: [0.33, 1, 0.68, 1] }}
+                        className="glass border-none shadow-sm rounded-md p-8 flex flex-col items-center justify-center text-center min-h-[300px] bg-white/40 dark:bg-card/20 bg-blueprint"
                     >
-                        <div className="p-4 rounded-full bg-primary/10 mb-4 animate-pulse">
+                        <div className="p-5 rounded-full bg-primary/5 mb-5 scale-smooth">
                             <Plus className="w-8 h-8 text-primary" />
                         </div>
-                        <h2 className="text-2xl font-bold mb-2">Start Your Journey</h2>
-                        <p className="text-muted-foreground max-w-md mb-8">
+                        <h2 className="text-xl font-bold mb-2 tracking-tight">Start Your Journey</h2>
+                        <p className="text-muted-foreground/80 max-w-md mb-8 text-sm leading-relaxed">
                             Create your first semester to begin calculating your GPA and tracking your academic progress.
                         </p>
-                        <Button onClick={onAddSemester} size="lg" className="rounded-full px-8 text-lg shadow-lg hover:shadow-primary/25 transition-all">
+                        <Button onClick={onAddSemester} size="lg" className="rounded-full px-8 h-12 text-base shadow-lg hover:shadow-primary/20 transition-all font-medium active:scale-95">
                             Create First Semester
                         </Button>
                     </motion.div>
                 </div>
 
-                {/* Side/Deadline Tile */}
+                {/* Side/Milestone Tile */}
                 <div className="lg:col-span-1">
-                    <DeadlineTile semesters={semesters} className="h-full min-h-[220px]" />
+                    <MilestoneTile />
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-6 lg:gap-8 lg:h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_320px] gap-6 lg:gap-8 lg:h-full pt-2">
             {/* ZONE 1: LEFT (CGPA Hero) */}
-            <div className="lg:col-span-1 flex flex-col gap-6 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:overflow-visible">
+            <div className="lg:col-span-1 flex flex-col gap-5 lg:sticky lg:top-8 lg:h-[calc(100vh-6rem)] lg:overflow-visible hidden lg:flex">
                 <CGPATile
                     cgpa={cgpa}
-                    className="flex-1 w-full min-h-[220px]"
+                    className="flex-1 w-full min-h-[220px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none bg-white dark:bg-card border-none"
+                    isSimulationMode={isSimulationMode}
+                    onToggleSimulation={onToggleSimulation}
+                />
+            </div>
+
+            {/* Mobile CGPA (Visible only on small screens) */}
+            <div className="lg:hidden">
+                <CGPATile
+                    cgpa={cgpa}
+                    className="min-h-[200px]"
                     isSimulationMode={isSimulationMode}
                     onToggleSimulation={onToggleSimulation}
                 />
             </div>
 
             {/* ZONE 2: CENTER (Semesters) */}
-            <div className="lg:col-span-1 flex flex-col gap-8 min-w-0 pb-20 lg:pb-0 lg:overflow-y-auto no-scrollbar lg:pr-2">
+            <div className="lg:col-span-1 flex flex-col gap-8 min-w-0 pb-20 lg:pb-0 lg:overflow-y-auto no-scrollbar lg:pr-1 px-1 lg:px-0">
                 <AnimatePresence mode="popLayout">
                     {semesters.map((semester, index) => (
                         <motion.div
                             layout
                             key={semester.id}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ delay: index * 0.1 }}
+                            initial={{ opacity: 0, y: 30, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                            transition={{
+                                delay: index * 0.05,
+                                duration: 0.4,
+                                ease: [0.33, 1, 0.68, 1]
+                            }}
                         >
                             <SemesterBlock
                                 semester={semester}
-                                semesterGPA={getSemesterGPA(semester)} // Logic Fix: Passing actual GPA
+                                semesterGPA={getSemesterGPA(semester)}
                                 hasAllGrades={semesterHasAllGrades(semester)}
                                 hasWallpaper={!!wallpaper}
-
-                                // Handlers - Adapting to SemesterBlock props
+                                isSimulationMode={isSimulationMode}
+                                simulatedGrades={simulatedGrades}
                                 onSubjectClick={(subject) => onSubjectClick({ subject, semesterId: semester.id })}
                                 onUpdateSemester={(updates) => onUpdateSemester(semester.id, updates)}
                                 onDeleteSemester={() => onDeleteSemester(semester.id, semester.name)}
@@ -141,20 +153,16 @@ export const BentoGrid = memo(function BentoGrid({
                     ))}
                 </AnimatePresence>
 
-                {/* Add Semester Button (Visible on all screens) */}
-                <motion.div className="pb-24 pt-4 flex justify-center">
-                    <Button onClick={onAddSemester} size="lg" className="rounded-full shadow-xl">
-                        <Plus className="mr-2 h-5 w-5" /> Add New Semester
+                {/* Add Semester Button */}
+                <motion.div className="pb-24 pt-2 flex justify-center">
+                    <Button onClick={onAddSemester} size="lg" className="rounded-full shadow-lg hover:shadow-xl hover:shadow-primary/20 h-12 px-8 text-base bg-white dark:bg-primary text-primary dark:text-primary-foreground border-2 border-primary/10 hover:border-primary/30 transition-all active:scale-95">
+                        <Plus className="mr-2 h-5 w-5" /> New Semester
                     </Button>
                 </motion.div>
             </div>
 
-            {/* ZONE 3: RIGHT (Deadlines & Milestones) */}
-            <div className="lg:col-span-1 flex flex-col gap-6 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)]">
-                <div className="flex-1 min-h-0">
-                    <DeadlineTile semesters={semesters} />
-                </div>
-
+            {/* ZONE 3: RIGHT (Milestones) */}
+            <div className="lg:col-span-1 flex flex-col gap-5 lg:sticky lg:top-8 lg:h-[calc(100vh-6rem)]">
                 <MilestoneTile />
             </div >
         </div >

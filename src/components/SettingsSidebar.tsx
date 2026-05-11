@@ -447,6 +447,8 @@ export function SettingsSidebar({
                   setFontColor(isDark ? '#fafafa' : '#0a0a0a');
                   localStorage.removeItem('customFontColor');
                   localStorage.removeItem('customForegroundHsl');
+                  localStorage.removeItem('customForegroundHsl_dark');
+                  localStorage.removeItem('customForegroundHsl_light');
                 }
               }}
               inline

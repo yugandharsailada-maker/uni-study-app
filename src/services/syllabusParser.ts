@@ -44,7 +44,7 @@ export const extractTextLocally = async (file: File): Promise<string> => {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
             const pageText = textContent.items
-                .map((item: any) => item.str)
+                .map((item) => (item as { str: string }).str)
                 .join(' ');
             fullText += `\n--- Page ${i} ---\n${pageText}`;
         }
